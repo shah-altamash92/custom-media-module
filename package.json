@@ -1,0 +1,16 @@
+{
+  "name": "custom-media-module",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \\\"Error: no test specified\\\" && exit 1"
+  },
+  "dependencies": {
+    "react-native-audio-record": "^0.1.2",
+    "react-native-camera": "^1.3.1",
+    "react-native-fs": "^2.11.17",
+    "react-native-sound-player": "^0.5.3",
+    "react-native-video": "^3.2.1",
+    "react-navigation": "^2.18.2"
+  }
+}
