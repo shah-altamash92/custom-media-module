@@ -8,12 +8,12 @@
 
 'use strict';
 import React, { Component } from 'react';
-import { Dimensions, StyleSheet, View, Image, TouchableOpacity, Text, TouchableWithoutFeedbackComponent } from 'react-native'
-import SoundPlayer from 'react-native-sound-player';
+import { StyleSheet, View, Image, TouchableOpacity, Text, NativeModules, Platform, StatusBar,TouchableWithoutFeedbackComponent , Dimensions} from 'react-native'
+import Sound from 'react-native-sound';
 import RNFS from "react-native-fs";
 import Video from 'react-native-video';
-
-
+import SafeAreaView from "react-native-safe-area-view";
+import RNDsPhotoEditor from 'react-native-ds-photo-editor';
 
 export default class Preview extends Component {
 
@@ -22,42 +22,119 @@ export default class Preview extends Component {
   };
   file = '';
   mediaType = '';
-
+  track;
+  EditedFile;
   state = {
     paused: true
   }
+  _showDoneButton = true;
 
   constructor(props) {
     super(props)
     this._playAudio = this._playAudio.bind(this);
     this._cancelPressed = this._cancelPressed.bind(this);
-
+    this._donePressed = this._donePressed.bind(this);
+    this._editImage = this._editImage.bind(this);
 
     const { navigation } = this.props;
     this.file = navigation.getParam('file', '');
-    // console.log(this.file);
-    // this.mediaType = navigation.getParam('type', '');
+    this._showDoneButton = navigation.getParam('showDoneButton', true);
+    console.log(this.file);
+    this.EditedFile = this.file
 
 
-    // this.myurl = "file:///data/user/0/com.customloadermodule/cache/Camera/2e41d233-47a5-49ee-a349-dcae457fdec0.jpg";
-    // this.mediaType = "image";
 
-    // this.myurl = "file:///data/user/0/com.customloadermodule/cache/Camera/99c4a452-ba2d-4fd5-9f74-9b3fa333b91d.mp4";
-    // this.mediaType = "video";
-
-    // console.log(this.mediaType);
-    // console.log(this.myurl);
-
-    // this.file = {uri: "/data/user/0/com.customloadermodule/files/1542103687398.mp3", type: "audio"};
   }
 
+  componentDidMount() {
+    // SoundPlayer.onFinishedPlaying((success) => { // success is true when the sound is played
+
+    //   this.setState({ paused: true });
+
+    //           })
+    this.getExistingFiles()
+  }
+  // unsubscribe when unmount
+  componentWillUnmount() {
+    // SoundPlayer.unmount()
+
+
+  }
+
+  getExistingFiles = () => {
+    console.log(RNFS.CachesDirectoryPath);
+    console.log(RNFS.DocumentDirectoryPath);
+
+    RNFS.readDir(RNFS.CachesDirectoryPath + '/Camera/')
+      .then((result) => {
+        console.log('GOT RESULT', result);
+        return Promise.all([RNFS.stat(result[0].path), result[0].path]);
+      })
+      .catch((err) => {
+        console.log(err.message, err.code);
+      });
+
+    RNFS.readDir(RNFS.DocumentDirectoryPath)
+      .then((result) => {
+        console.log('GOT RESULT', result);
+        return Promise.all([RNFS.stat(result[0].path), result[0].path]);
+      })
+      .catch((err) => {
+        console.log(err.message, err.code);
+      });
+
+  }
+
+  _editImage = () => {
+
+    if  (Platform.OS === 'ios')
+    { 
+      NativeModules.RNDsPhotoEditor.init("212ef55e52688810a0f962c31b9888794c121f8a")
+     console.log("filePath")
+     NativeModules.RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
+
+      this.EditedFile.uri = "file://" +uri;
+      this.setState({})
+
+      console.log(uri)
+    }).catch(error => {
+      console.log(error)
+    });
+  }
+  else
+  {
+    RNDsPhotoEditor.init("212ef55e52688810a0f962c31b9888794c121f8a")
+    console.log("filePath")
+    RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
+
+     this.EditedFile.uri = "file://" +uri;
+     this.setState({})
+
+     console.log(uri)
+   }).catch(error => {
+     console.log(error)
+   });
+  }
+ 
+
+  }
+  //<SafeAreaView style={{flex: 1, backgroundColor: '#0171B9', paddingTop: (Platform.OS === "ios" ? 20 : 0)}} forceInset={{ bottom: 'never' }}>
   render() {
     return (
-      <View style={{ flex: 1, flexDirection: 'column', height: '100%', width: '100%', backgroundColor: '#000000' }}>
+      <SafeAreaView style={{ flex: 1, flexDirection: 'column', height: '100%', width: '100%', backgroundColor: '#0171B9', paddingTop: (Platform.OS === "ios" ? 20 : 0) }} forceInset={{ bottom: 'never' }}>
+        <StatusBar
+          backgroundColor='#0171B9'
+          barStyle="light-content" />
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.leftButton} onPress={this._cancelPressed}>
             <Image source={require('./assets/icons/ic_cancel.png')} resizeMode='contain' style={styles.closeButtonStyle} />
           </TouchableOpacity>
+          {
+            this.file.type === 'image' ?
+              <TouchableOpacity style={styles.rightButton} onPress={this._editImage}>
+                <Image style={{ height: 25, width: 25 }} source={require('./assets/icons/edit_image.png')} />
+              </TouchableOpacity> : null
+          }
         </View>
         <View style={styles.container}>
           {
@@ -77,13 +154,13 @@ export default class Preview extends Component {
             <TouchableOpacity style={styles.leftButton} onPress={this._deleteMedia}>
               <Image source={require('./assets/icons/trash.png')} style={{ height: 20, width: 20 }} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.rightButton}>
+            <TouchableOpacity style={styles.rightButton} onPress={this._donePressed} >
               <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -95,11 +172,11 @@ export default class Preview extends Component {
           paused={this.state.paused} onEnd={this._onVideoComplete} repeat={true} />
         break;
       case 'audio':
-        view = <Image style={[styles.screenCover, { width: '100%' }]}
-          source={require('./assets/images/audio_wallpaper_phone.png')} resizeMode='stretch' />;
+        view = <Image style={[styles.audioPreview]}
+          source={require('./assets/images/audio_wallpaper_phone.png')}  />;
         break;
       case 'image':
-        view = <Image style={[styles.screenCover, { flex: 1 }]} source={{ uri: this.file.uri }} />;
+        view = <Image style={[styles.screenCover, { flex: 1 }]} source={{ uri: this.EditedFile.uri }} />;
         break;
     }
     return view;
@@ -113,22 +190,44 @@ export default class Preview extends Component {
   }
 
   _playAudio = () => {
-    try {
-      SoundPlayer.playUrl(this.file.uri);
 
-      SoundPlayer.onFinishedPlaying((success) => { // success is true when the sound is played
-        this.setState({ paused: true });
-      })
-    } catch (e) {
-      alert('Cannot play the file')
-    }
+   
+    Sound.setCategory('Playback');
+
+    this.track = new Sound(this.file.uri, '', (e) => {
+      if (e) {
+        console.log('error loading track:', e)
+        console.log(this.file.uri)
+      } else {
+
+
+        console.log('PlayLoad:')
+        console.log(this.file.uri)
+        //   track.play()
+        // Get properties of the player instance
+
+        this.track.play((success) => {
+          console.log('Play')
+          if (success) {
+            console.log('successfully finished playing');
+            this.setState({ paused: true });
+          } else {
+            console.log('playback failed due to audio decoding errors');
+            // reset the player to its uninitialized state (android only)
+            // this is the only option to recover after an error occured and use the player again
+            this.track.reset();
+          }
+        });
+      }
+    })
+
   }
 
   _pauseVideo = () => {
     this.setState({ paused: true });
     if (this.file.type === 'audio') {
       try {
-        SoundPlayer.stop();
+        this.track.stop();
       } catch (e) {
         alert('Cannot play the file')
       }
@@ -161,6 +260,12 @@ export default class Preview extends Component {
   }
 
   _cancelPressed = () => {
+    this.props.navigation.state.params.onCrossedPressed(this.file);
+    this.props.navigation.pop();
+  }
+
+  _donePressed = () => {
+    this.props.navigation.state.params.onDonePressed(this.EditedFile);
     this.props.navigation.pop();
   }
 }
@@ -227,7 +332,15 @@ var styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center'
-  }
+  },
+  audioPreview: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    top: 0,
+    marginBottom: 90,
+
+}
 
 });
 

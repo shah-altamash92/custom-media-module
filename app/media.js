@@ -1,10 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow
- */
 
 'use strict';
 import React, { Component } from 'react';
@@ -12,18 +5,18 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View, Platform, Image
+    View, Platform, Image, Dimensions, StatusBar
 } from 'react-native';
 import PropTypes from 'prop-types';
 import { RNCamera } from 'react-native-camera';
 import AudioRecord from 'react-native-audio-record';
-// import Video from 'react-native-video';
-// const instructions = Platform.select({
-//     ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-//     android:
-//         'Double tap R on your keyboard to reload,\n' +
-//         'Shake or press menu button for dev menu',
-// });
+import ProgressBarAnimated from 'react-native-progress-bar-animated';
+import Video from 'react-native-video';
+//import ImagePicker from 'react-native-image-picker';
+import ImagePicker from 'react-native-image-crop-picker';
+import SafeAreaView from "react-native-safe-area-view";
+import RNThumbnail from 'react-native-thumbnail';
+
 
 export default class Media extends Component {
 
@@ -34,6 +27,7 @@ export default class Media extends Component {
     audioCapturing = false;
     audioUri = '';
     _mediaFiles = [];
+    thumbnailUri = '';
 
     _interval = null;
 
@@ -50,8 +44,8 @@ export default class Media extends Component {
      * Default props values
      */
     static defaultProps = {
-        videoDuration: 30,
-        audioDuration: 20
+        videoDuration: 300,
+        audioDuration: 600
     }
 
     constructor(props) {
@@ -61,18 +55,45 @@ export default class Media extends Component {
         this.upButtonChangeMode = this.upButtonChangeMode.bind(this);
         this.downButtonChangeMode = this.downButtonChangeMode.bind(this);
         this.goToCapturedMedia = this.goToCapturedMedia.bind(this);
+        this.pickMediaFromGallery = this.pickMediaFromGallery.bind(this);
     }
 
-    state = {
-        cameraType: RNCamera.Constants.Type.back,
-        flashMode: RNCamera.Constants.FlashMode.off,
-        isMode: 'image',
-        showMenu: false,
-        timeRemaining: 0,
+    state =
+        {
+            cameraType: RNCamera.Constants.Type.back,
+            flashMode: RNCamera.Constants.FlashMode.off,
+            imageUriFromCamera: '',
+            isMode: 'image',
+            showMenu: false,
+            mediaType: '',
+            timeRemaining: 0,
+            progress: 0,
+            progressWithOnComplete: 0,
+            progressCustomized: 0,
+        }
+
+    increase = (key, value) => {
+        this.setState({
+            [key]: + value,
+        });
+
+        console.log(value)
     }
     render() {
+        const barWidth = Dimensions.get('screen').width;
+        const progressCustomStyles = {
+            backgroundColor: '#D31145',
+            borderRadius: 0,
+            height: 3,
+            borderWidth: 0,
+            padding: 0
+        };
+
         return (
-            <View style={styles.container}>
+            <SafeAreaView style={styles.container} forceInset={{ bottom: 'never' }}>
+                <StatusBar
+                    backgroundColor='#0171B9'
+                    barStyle="light-content" />
                 <View style={styles.headerContainer}>
                     <TouchableOpacity style={styles.leftButton} onPress={this._doneClick}>
                         <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
@@ -83,7 +104,7 @@ export default class Media extends Component {
                                 <View style={styles.timerDot}></View>
                                 <Text style={styles.timer}>
                                     {this.state.timeRemaining} Secs
-                </Text>
+                    </Text>
                             </View> : null
                     }
                     <View style={styles.rightButtonHolder}>
@@ -95,11 +116,14 @@ export default class Media extends Component {
                                     ></Image>
                                 </TouchableOpacity> : null
                         }
-                        <TouchableOpacity style={{ padding: 10 }}>
-                            <Image style={{ height: 20, width: 20 }}
-                                source={require('./assets/icons/gallery.png')}
-                            ></Image>
-                        </TouchableOpacity>
+                        {
+                            this.state.isMode === 'audio' ? null :
+                                <TouchableOpacity onPress={this.pickMediaFromGallery} style={{ padding: 10 }}>
+                                    <Image style={{ height: 20, width: 20 }}
+                                        source={require('./assets/icons/gallery.png')}
+                                    ></Image>
+                                </TouchableOpacity>
+                        }
                     </View>
                 </View>
 
@@ -129,12 +153,18 @@ export default class Media extends Component {
                     </View>
                         : null
                 }
-
-
-
+                {
+                    this.state.isMode === 'image' ? null :
+                        <ProgressBarAnimated
+                            {...progressCustomStyles}
+                            width={barWidth}
+                            maxValue={100}
+                            value={this.state.progressCustomized}
+                        />}
                 <View style={{ position: 'absolute', width: '100%', justifyContent: 'center', bottom: 0, padding: 10, backgroundColor: 'black' }}>
+
                     <TouchableOpacity onPress={() => this.goToCapturedMedia()} style={{ position: 'absolute', marginLeft: 40, height: 40, width: 40, borderRadius: 5 }}>
-                        { this._mediaPreview() }
+                        {this._mediaPreview()}
                     </TouchableOpacity>
 
 
@@ -155,9 +185,6 @@ export default class Media extends Component {
                         ></Image>
 
                     </TouchableOpacity>
-
-
-
                     {/* Toggle mode button */}
                     <TouchableOpacity onPress={this.showAndHideMenu.bind(this)} style={styles.optionsMenu} >
                         <Image source={this.state.isMode === 'image' ? require('./assets/icons/camera.png') : (this.state.isMode === 'video' ? require('./assets/icons/video.png') : require('./assets/icons/audio.png'))}
@@ -166,11 +193,51 @@ export default class Media extends Component {
                     </TouchableOpacity>
                 </View>
 
-            </View>
+            </SafeAreaView>
         );
     }
 
 
+    pickMediaFromGallery = () => {
+
+        ImagePicker.openPicker({
+            multiple: true
+        }).then(images => {
+
+            console.log(images);
+
+            images.forEach((item) => {
+
+                if (item.mime.includes('image')) {
+
+
+                    var data = item
+                    data.type = "image";
+                    data.uri = "file://" + item.path
+                    console.log(data)
+                    this._mediaFiles.push(data);
+
+                }
+                else if (item.mime.includes('video')) {
+
+                    var data = item
+                    data.type = "video";
+                    data.uri = item.path
+                    RNThumbnail.get(item.path).then((result) => {
+                        // thumbnail path
+                        this.thumbnailUri = result.path
+                        data.thumbnail = this.thumbnailUri
+                        this._mediaFiles.push(data);
+                        this.setState({});
+                    })
+
+
+                }
+            })
+            this.setState({});
+        });
+
+    }
 
     captureMedia = async function () {
         if (this.camera) {
@@ -178,6 +245,7 @@ export default class Media extends Component {
                 const options = { quality: 0.5, base64: true, fixOrientation: true };
                 const data = await this.camera.takePictureAsync(options);
                 data.type = "image";
+
                 this._mediaFiles.push(data);
                 this.setState({});
             }
@@ -192,39 +260,52 @@ export default class Media extends Component {
                     this.startRecordingTimer();
                     const data = await this.camera.recordAsync(options)
                     data.type = "video";
-                    this._mediaFiles.push(data);
-                    
-                    this.setState({});
+                    RNThumbnail.get(data.uri).then((result) => {
+                        console.log(result.path);
+                        data.thumbnail =  result.path // thumbnail path
+                        this._mediaFiles.push(data);
+                        
+                        this.setState({});
+                        this.increase('progressCustomized', (0))
+                    })
+                   
                 }
                 else {
                     console.log("stop Recording")
                     this.stopRecordingTimer();
                     this.camera.stopRecording();
+                    this.increase('progressCustomized', (0))
                 }
             }
         }
         else if (this.state.isMode === 'audio') {
             var milliseconds = (new Date).getTime();
-            const options = {
-                sampleRate: 16000,  // default 44100
-                channels: 1,        // 1 or 2, default 1
-                bitsPerSample: 16,  // 8 or 16, default 16
-                wavFile: milliseconds + '.mp3' // default 'audio.wav'
-            };
-
-            AudioRecord.init(options);
             this.audioCapturing = !this.audioCapturing;
             // console.log(this.videoCapturing);
             if (this.audioCapturing) {
                 this.startRecordingTimer();
+                const options = {
+                    sampleRate: 16000,  // default 44100
+                    channels: 1,        // 1 or 2, default 1
+                    bitsPerSample: 16,  // 8 or 16, default 16
+                    wavFile: milliseconds + ".wav" // default 'audio.wav'
+                };
+                AudioRecord.init(options);
                 AudioRecord.start();
+                console.log("this.audioFile.options.start")
+                console.log("StartFileName" + this.audioFile.options.wavFile)
             }
             else {
                 await AudioRecord.stop();
                 const audioFile = await AudioRecord.stop();
-                this._mediaFiles.push({uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining});
+                this._mediaFiles.push({ uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining });
                 this.stopRecordingTimer();
                 this.audioUri = audioFile;
+                // alert(this.audioUri);
+                console.log("this.audioFile.options.wavFile")
+                console.log(this.audioFile.options.wavFile)
+               
+                // this.setState({});
             }
         }
     };
@@ -232,6 +313,21 @@ export default class Media extends Component {
     startRecordingTimer = () => {
         this._interval = setInterval(() => {
             this.setState({ timeRemaining: this.state.timeRemaining - 1 }, () => {
+
+                var remainingTime
+
+                if (this.state.isMode === 'video') {
+                    remainingTime = ((this.props.videoDuration - this.state.timeRemaining) / this.props.videoDuration) * 100
+
+                }
+                else if (this.state.isMode === 'audio') {
+                    remainingTime = ((this.props.audioDuration - this.state.timeRemaining) / this.props.audioDuration) * 100
+                }
+                console.log(remainingTime)
+                this.increase('progressCustomized', (remainingTime))
+
+                console.log(remainingTime)
+
                 if (this.state.timeRemaining == 0) {
                     this.captureMedia();
                 }
@@ -244,6 +340,7 @@ export default class Media extends Component {
             timeRemaining: (this.state.isMode === 'video' ? this.props.videoDuration : (this.state.isMode === 'audio' ? this.props.audioDuration : 0))
         });
         clearInterval(this._interval);
+        this.increase('progressCustomized', (0))
     }
 
     flash = () => {
@@ -257,10 +354,21 @@ export default class Media extends Component {
 
     goToCapturedMedia = () => {
         if (!this.videoCapturing && !this.audioCapturing) {
-            this.props.navigation.navigate('Preview', { file: this._mediaFiles[this._mediaFiles.length-1], 
+            this.props.navigation.navigate('Preview', {
+                file: this._mediaFiles[this._mediaFiles.length - 1],
                 onFileDelete: () => {
                     this._mediaFiles.pop();
                     // console.log(this._mediaFiles);
+                    this.setState({});
+                },
+                onCrossedPressed: (previewFile) => {
+              
+                    console.log ("Cross Button Pressed")  
+                },
+                onDonePressed: (previewFile) => {
+                    this._mediaFiles.pop ()
+                    this._mediaFiles.push (previewFile)
+                   console.log ("Done Button Pressed")
                     this.setState({});
                 }
             });
@@ -282,6 +390,7 @@ export default class Media extends Component {
                 isMode: 'video',
                 timeRemaining: this.props.videoDuration
             })
+            this.increase('progressCustomized', (0))
         }
         else if (this.state.isMode === 'video') {
             this.setState({
@@ -289,6 +398,7 @@ export default class Media extends Component {
                 isMode: 'audio',
                 timeRemaining: this.props.audioDuration
             })
+            this.increase('progressCustomized', (0))
         }
         else {
             this.setState({
@@ -305,6 +415,7 @@ export default class Media extends Component {
                 isMode: 'audio',
                 timeRemaining: this.props.audioDuration
             })
+            this.increase('progressCustomized', (0))
         }
         else if (this.state.isMode === 'video') {
             this.setState({
@@ -318,6 +429,7 @@ export default class Media extends Component {
                 isMode: 'video',
                 timeRemaining: this.props.videoDuration
             })
+            this.increase('progressCustomized', (0))
         }
     }
 
@@ -333,25 +445,27 @@ export default class Media extends Component {
     _mediaPreview = () => {
         var view = null;
 
-        var lastMedia = (this._mediaFiles && this._mediaFiles.length > 0 ? this._mediaFiles[this._mediaFiles.length-1] : null);
+        var lastMedia = (this._mediaFiles && this._mediaFiles.length > 0 ? this._mediaFiles[this._mediaFiles.length - 1] : null);
 
-        
-        console.log(this._mediaFiles.length+' / '+lastMedia);
-        if(lastMedia){
+        console.log(lastMedia)
+        console.log(this._mediaFiles.length + ' / ' + lastMedia);
+        if (lastMedia) {
             console.log(lastMedia);
-            if(lastMedia.type === 'audio'){
-                view = <Image source={ require('./assets/images/audio_wallpaper_phone.png') } style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5 }} />
+            if (lastMedia.type === 'audio') {
+                view = <Image source={require('./assets/images/audio_wallpaper_phone.png')} style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5 }} />
             }
-            else{ // if(lastMedia.type === 'image'){
-                view = <Image source={{ uri: lastMedia.uri }} 
-                    style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderWidth:2, borderColor: '#dcdcdc', backgroundColor:'black' }} />
+            else if (lastMedia.type === 'image') {
+                console.log(lastMedia.thumbnail)
+                view = <Image source={{ uri: lastMedia.uri }}
+                    style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderWidth: 2, borderColor: '#dcdcdc', backgroundColor: 'black' }} />
             }
-            // else if(lastMedia.type === 'video'){
-            //     view = <Video source={{ uri: lastMedia.uri }} resizeMode='contain' paused={false} shouldPlay={false}
-            //         style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderWidth:2, borderColor: '#dcdcdc' }}/>
-            //     // <Video style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5 }} resizeMode='contain' paused={true}
-            //     // source={{ uri: lastMedia.uri }} shouldPlay={false} />
-            // }
+            else { 
+
+                view = <Image source={{ uri: lastMedia.thumbnail }}
+
+                    style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderWidth: 2, borderColor: '#dcdcdc', backgroundColor: 'black' }} />
+            }
+
         }
 
         return view;
@@ -359,8 +473,8 @@ export default class Media extends Component {
 
     _doneClick = () => {
         console.log(this._mediaFiles);
-          this.props.navigation.state.params.onComplete(this._mediaFiles);
-          this.props.navigation.pop();
+        this.props.navigation.state.params.onComplete(this._mediaFiles);
+        this.props.navigation.pop();
     }
 }
 
@@ -368,14 +482,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         flexDirection: 'column',
-        backgroundColor: 'black'
+        backgroundColor: '#0171B9',
+        paddingTop: (Platform.OS === "ios" ? 20 : 0)
     },
 
     preview: {
         position: 'absolute',
         width: '100%',
         height: '100%',
-        marginTop: 40,
+        marginTop: (Platform.OS === "ios" ? 80 : 60),
         top: 0,
         marginBottom: 90,
         bottom: 90
@@ -390,13 +505,13 @@ const styles = StyleSheet.create({
         position: 'absolute',
     },
     headerContainer: {
-        // padding: 20,
+        paddingTop: (Platform.OS === "ios" ? 20 : 0),
         backgroundColor: '#0171B9',
         width: '100%',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexDirection: 'row',
-        padding: 0
+        // height:100
     },
 
     leftButton: {
