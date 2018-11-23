@@ -8,12 +8,13 @@
 
 'use strict';
 import React, { Component } from 'react';
-import { StyleSheet, View, Image, TouchableOpacity, Text, NativeModules, Platform, StatusBar,TouchableWithoutFeedbackComponent , Dimensions} from 'react-native'
+import { StyleSheet, View, Image, TouchableOpacity, Text, PermissionsAndroid, Platform, StatusBar,TouchableWithoutFeedbackComponent , Dimensions} from 'react-native'
 import Sound from 'react-native-sound';
 import RNFS from "react-native-fs";
 import Video from 'react-native-video';
 import SafeAreaView from "react-native-safe-area-view";
 import RNDsPhotoEditor from 'react-native-ds-photo-editor';
+import Permissions from 'react-native-permissions'
 
 export default class Preview extends Component {
 
@@ -35,6 +36,8 @@ export default class Preview extends Component {
     this._cancelPressed = this._cancelPressed.bind(this);
     this._donePressed = this._donePressed.bind(this);
     this._editImage = this._editImage.bind(this);
+    this.permissionPopup=this.permissionPopup.bind(this);
+    this._checkOS=this._checkOS.bind(this);
 
     const { navigation } = this.props;
     this.file = navigation.getParam('file', '');
@@ -60,6 +63,33 @@ export default class Preview extends Component {
 
 
   }
+
+  permissionPopup = () => {
+    Permissions.request('photo').then(response => {
+      // Returns once the user has chosen to 'allow' or to 'not allow' access
+      // Response is one of: 'authorized', 'denied', 'restricted', or 'undetermined'
+     if(response==='authorized')
+     {
+this._editImage();
+     }
+    })
+  }
+ 
+  _checkOS = () => {
+    if(Platform.OS==='ios')
+    {
+  this._editImage();
+    }
+    else{
+const value=  this.permissionPopup();
+console.log(value);
+
+  //this._editImage();
+    }
+  
+ 
+  }
+ 
 
   getExistingFiles = () => {
     console.log(RNFS.CachesDirectoryPath);
@@ -89,9 +119,9 @@ export default class Preview extends Component {
 
     if  (Platform.OS === 'ios')
     { 
-      NativeModules.RNDsPhotoEditor.init("212ef55e52688810a0f962c31b9888794c121f8a")
+      RNDsPhotoEditor.init("356ccf6a64237931c06a32f16f37dd1494227e57")
      console.log("filePath")
-     NativeModules.RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
+     RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
 
       this.EditedFile.uri = "file://" +uri;
       this.setState({})
@@ -103,7 +133,7 @@ export default class Preview extends Component {
   }
   else
   {
-    RNDsPhotoEditor.init("212ef55e52688810a0f962c31b9888794c121f8a")
+    RNDsPhotoEditor.init("b3592e51d3bd33650f8774260972e31a607bbdc0")
     console.log("filePath")
     RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
 
@@ -131,7 +161,7 @@ export default class Preview extends Component {
           </TouchableOpacity>
           {
             this.file.type === 'image' ?
-              <TouchableOpacity style={styles.rightButton} onPress={this._editImage}>
+              <TouchableOpacity style={styles.rightButton} onPress={this._checkOS}>
                 <Image style={{ height: 25, width: 25 }} source={require('./assets/icons/edit_image.png')} />
               </TouchableOpacity> : null
           }
@@ -176,7 +206,7 @@ export default class Preview extends Component {
           source={require('./assets/images/audio_wallpaper_phone.png')}  />;
         break;
       case 'image':
-        view = <Image style={[styles.screenCover, { flex: 1 }]} source={{ uri: this.EditedFile.uri }} />;
+        view = <Image resizeMode='contain' style={[styles.screenCover, { flex: 1 }]} source={{ uri: this.EditedFile.uri }} />;
         break;
     }
     return view;
@@ -326,10 +356,10 @@ var styles = StyleSheet.create({
   screenCover: {
     position: 'absolute',
     // backgroundColor:'red',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 5,
+    left: 5,
+    right: 5,
+    bottom: 5,
     justifyContent: 'center',
     alignItems: 'center'
   },
