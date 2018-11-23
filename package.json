@@ -17,6 +17,7 @@
     "react-native-sound": "^0.10.9",
     "react-native-thumbnail": "^1.1.3",
     "react-native-video": "^3.2.1",
-    "react-navigation": "^2.18.2"
+    "react-navigation": "^2.18.2",
+    "react-native-permissions": "^1.1.1"
   }
 }
