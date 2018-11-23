@@ -184,9 +184,9 @@ export default class Media extends Component {
                             }
                         ></Image>
 
-                    </TouchableOpacity>
+                    </TouchableOpacity >
                     {/* Toggle mode button */}
-                    <TouchableOpacity onPress={this.showAndHideMenu.bind(this)} style={styles.optionsMenu} >
+                    <TouchableOpacity onPress={this.showAndHideMenu.bind(this)} style={styles.optionsMenu}  >
                         <Image source={this.state.isMode === 'image' ? require('./assets/icons/camera.png') : (this.state.isMode === 'video' ? require('./assets/icons/video.png') : require('./assets/icons/audio.png'))}
                             style={{ height: 25, width: 25, }} >
                         </Image>
@@ -213,7 +213,8 @@ export default class Media extends Component {
 
                     var data = item
                     data.type = "image";
-                    data.uri = "file://" + item.path
+                    data.uri = "file://" + item.path;
+                    data.comment = null;
                     console.log(data)
                     this._mediaFiles.push(data);
 
@@ -222,7 +223,8 @@ export default class Media extends Component {
 
                     var data = item
                     data.type = "video";
-                    data.uri = item.path
+                    data.uri = item.path;
+                    data.comment = null;
                     RNThumbnail.get(item.path).then((result) => {
                         // thumbnail path
                         this.thumbnailUri = result.path
@@ -245,7 +247,7 @@ export default class Media extends Component {
                 const options = { quality: 0.5, base64: true, fixOrientation: true };
                 const data = await this.camera.takePictureAsync(options);
                 data.type = "image";
-
+                data.comment = null;
                 this._mediaFiles.push(data);
                 this.setState({});
             }
@@ -260,6 +262,7 @@ export default class Media extends Component {
                     this.startRecordingTimer();
                     const data = await this.camera.recordAsync(options)
                     data.type = "video";
+                    data.comment = null;
                     RNThumbnail.get(data.uri).then((result) => {
                         console.log(result.path);
                         data.thumbnail =  result.path // thumbnail path
@@ -298,7 +301,7 @@ export default class Media extends Component {
             else {
                 await AudioRecord.stop();
                 const audioFile = await AudioRecord.stop();
-                this._mediaFiles.push({ uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining });
+                this._mediaFiles.push({ uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining, comment: null });
                 this.stopRecordingTimer();
                 this.audioUri = audioFile;
                 // alert(this.audioUri);
@@ -452,7 +455,7 @@ export default class Media extends Component {
         if (lastMedia) {
             console.log(lastMedia);
             if (lastMedia.type === 'audio') {
-                view = <Image source={require('./assets/images/audio_wallpaper_phone.png')} style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5 }} />
+                view = <Image source={require('./assets/images/audio_wallpaper_phone.png')} style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5,  borderColor: '#dcdcdc', borderWidth: 2 }} />
             }
             else if (lastMedia.type === 'image') {
                 console.log(lastMedia.thumbnail)
@@ -483,29 +486,34 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'column',
         backgroundColor: '#0171B9',
-        paddingTop: (Platform.OS === "ios" ? 20 : 0)
+   //     paddingTop: (Platform.OS === "ios" ? 20 : 0)
     },
 
     preview: {
         position: 'absolute',
         width: '100%',
         height: '100%',
-        marginTop: (Platform.OS === "ios" ? 80 : 60),
+        marginTop: 60,
         top: 0,
         marginBottom: 90,
-        bottom: 90
 
     },
     capture: {
         alignSelf: 'center',
     },
     optionsMenu: {
-        marginRight: 70,
+        marginRight: 40,
         right: 0,
         position: 'absolute',
+        height : 50,
+        width:50,
+        backgroundColor:'#807F7F',
+        borderRadius:25,
+        alignItems:'center',
+        justifyContent: 'center',
     },
     headerContainer: {
-        paddingTop: (Platform.OS === "ios" ? 20 : 0),
+    //    paddingTop: (Platform.OS === "ios" ? 20 : 0),
         backgroundColor: '#0171B9',
         width: '100%',
         justifyContent: 'space-between',
@@ -540,6 +548,7 @@ const styles = StyleSheet.create({
     },
     rightButtonHolder: {
         // flex: 1,
+     //   position:'absolute',
         alignSelf: 'flex-end',
         justifyContent: 'center',
         alignItems: 'flex-end',
@@ -551,16 +560,15 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 0,
         zIndex: 999999,
-        marginRight: 65,
+        marginRight: 60,
         marginBottom: 100,
-        bottom: 0,
+        bottom: 40,
         borderRadius: 10,
     },
     imageContainerOfMenu: {
-        width: 30,
-        height: 80,
-        position: 'absolute',
-        borderRadius: 10,
+        width: 44,
+        height: 89,
+  
     }
     ,
     touchUpOfMenu: {
