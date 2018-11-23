@@ -36,15 +36,11 @@ export default class Home extends Component {
       }
     });
 
-
   }
 
   componentDidMount() {
 
-
   }
-
-
 
   _renderItem = ({ item }) => (<Text>{item.type} = {item.uri}</Text>);
   render() {
@@ -64,3 +60,4 @@ export default class Home extends Component {
     );
   }
 }
+
