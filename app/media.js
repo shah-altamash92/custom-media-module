@@ -244,7 +244,7 @@ export default class Media extends Component {
     captureMedia = async function () {
         if (this.camera) {
             if (this.state.isMode === 'image') {
-                const options = { quality: 0.5, base64: true, fixOrientation: true };
+                const options = { quality: 0.5 , fixOrientation: true };
                 const data = await this.camera.takePictureAsync(options);
                 data.type = "image";
                 data.comment = null;
@@ -254,7 +254,7 @@ export default class Media extends Component {
             else if (this.state.isMode === 'video') {
                 // console.log('video')
 
-                const options = { base64: true, quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
+                const options = {  quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
 
                 this.videoCapturing = !this.videoCapturing;
                 if (this.videoCapturing) {
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         flexDirection: 'column',
-        backgroundColor: '#0171B9',
+        backgroundColor: 'black',
    //     paddingTop: (Platform.OS === "ios" ? 20 : 0)
     },
 
@@ -496,6 +496,7 @@ const styles = StyleSheet.create({
         marginTop: 60,
         top: 0,
         marginBottom: 90,
+        backgroundColor: 'black'
 
     },
     capture: {
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         marginBottom: 40,
         bottom: 0,
-        borderRadius: 10,
+        borderRadius: 0,
     },
 
     touchDownOfMenu: {
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
         height: 40,
         bottom: 0,
         position: 'absolute',
-        borderRadius: 10,
+        borderRadius: 0,
     },
 
 });
