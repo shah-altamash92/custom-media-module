@@ -14,7 +14,7 @@ import RNFS from "react-native-fs";
 import Video from 'react-native-video';
 import SafeAreaView from "react-native-safe-area-view";
 import RNDsPhotoEditor from 'react-native-ds-photo-editor';
-import Permissions from 'react-native-permissions'
+
 
 export default class Preview extends Component {
 
@@ -36,8 +36,7 @@ export default class Preview extends Component {
     this._cancelPressed = this._cancelPressed.bind(this);
     this._donePressed = this._donePressed.bind(this);
     this._editImage = this._editImage.bind(this);
-    this.permissionPopup=this.permissionPopup.bind(this);
-    this._checkOS=this._checkOS.bind(this);
+
 
     const { navigation } = this.props;
     this.file = navigation.getParam('file', '');
@@ -64,31 +63,7 @@ export default class Preview extends Component {
 
   }
 
-  permissionPopup = () => {
-    Permissions.request('photo').then(response => {
-      // Returns once the user has chosen to 'allow' or to 'not allow' access
-      // Response is one of: 'authorized', 'denied', 'restricted', or 'undetermined'
-     if(response==='authorized')
-     {
-this._editImage();
-     }
-    })
-  }
- 
-  _checkOS = () => {
-    if(Platform.OS==='ios')
-    {
-  this._editImage();
-    }
-    else{
-const value=  this.permissionPopup();
-console.log(value);
-
-  //this._editImage();
-    }
   
- 
-  }
  
 
   getExistingFiles = () => {
@@ -123,10 +98,23 @@ console.log(value);
      console.log("filePath")
      RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
 
-      this.EditedFile.uri = "file://" +uri;
+   var time  = Date.now();
+
+   var newFilePath = RNFS.CachesDirectoryPath + '/Camera/' + time + '.png'
+      RNFS.moveFile (uri, newFilePath ) .then((result) => {
+        console.log('MOVE FILE  RESULT', result);
+        console.log (newFilePath);
+        console.log(uri)
+       // return Promise.all([RNFS.stat(result[0].path), result[0].path]);
+      })
+      .catch((err) => {
+        console.log(err.message, err.code);
+      });
+
+      this.EditedFile.uri = "file://" + newFilePath;
       this.setState({})
 
-      console.log(uri)
+      
     }).catch(error => {
       console.log(error)
     });
@@ -137,7 +125,11 @@ console.log(value);
     console.log("filePath")
     RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
 
+
+      
+
      this.EditedFile.uri = "file://" +uri;
+    
      this.setState({})
 
      console.log(uri)
@@ -161,7 +153,7 @@ console.log(value);
           </TouchableOpacity>
           {
             this.file.type === 'image' ?
-              <TouchableOpacity style={styles.rightButton} onPress={this._checkOS}>
+              <TouchableOpacity style={styles.rightButton} onPress={this._editImage}>
                 <Image style={{ height: 25, width: 25 }} source={require('./assets/icons/edit_image.png')} />
               </TouchableOpacity> : null
           }
