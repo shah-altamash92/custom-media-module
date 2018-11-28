@@ -1,4 +1,3 @@
-
 'use strict';
 import React, { Component } from 'react';
 import {
@@ -16,7 +15,7 @@ import Video from 'react-native-video';
 import ImagePicker from 'react-native-image-crop-picker';
 import SafeAreaView from "react-native-safe-area-view";
 import RNThumbnail from 'react-native-thumbnail';
-
+import Permissions from 'react-native-permissions'
 
 export default class Media extends Component {
 
@@ -56,6 +55,8 @@ export default class Media extends Component {
         this.downButtonChangeMode = this.downButtonChangeMode.bind(this);
         this.goToCapturedMedia = this.goToCapturedMedia.bind(this);
         this.pickMediaFromGallery = this.pickMediaFromGallery.bind(this);
+        this.permissionPopup=this.permissionPopup.bind(this);
+        this._checkOS=this._checkOS.bind(this);
     }
 
     state =
@@ -71,6 +72,37 @@ export default class Media extends Component {
             progressWithOnComplete: 0,
             progressCustomized: 0,
         }
+
+componentDidMount ()
+{
+this._checkOS()
+}
+        permissionPopup = () => {
+            Permissions.request('photo').then(response => {
+              // Returns once the user has chosen to 'allow' or to 'not allow' access
+              // Response is one of: 'authorized', 'denied', 'restricted', or 'undetermined'
+             if(response==='authorized')
+             {
+        console.log ("Authorized")
+             }
+             else
+             {
+                 this.props.navigation.pop();
+             }
+            })
+          }
+         
+          _checkOS = () => {
+            if(Platform.OS==='android')
+            {
+        const value=  this.permissionPopup();
+        console.log(value);
+        
+          //this._editImage();
+            }
+          
+         
+          }
 
     increase = (key, value) => {
         this.setState({
@@ -201,7 +233,11 @@ export default class Media extends Component {
     pickMediaFromGallery = () => {
 
         ImagePicker.openPicker({
-            multiple: true
+            multiple: true,
+            maxFiles: 2,
+            forceJpg: false,
+            cropping: false,
+          compressImageQuality:0.7
         }).then(images => {
 
             console.log(images);
@@ -210,7 +246,7 @@ export default class Media extends Component {
 
                 if (item.mime.includes('image')) {
 
-
+console.log (item.mime)
                     var data = item
                     data.type = "image";
                     data.uri = "file://" + item.path;
@@ -391,7 +427,8 @@ export default class Media extends Component {
             this.setState({
                 showMenu: false,
                 isMode: 'video',
-                timeRemaining: this.props.videoDuration
+                timeRemaining: this.props.videoDuration,
+                cameraType: RNCamera.Constants.Type.back
             })
             this.increase('progressCustomized', (0))
         }
@@ -399,7 +436,8 @@ export default class Media extends Component {
             this.setState({
                 showMenu: false,
                 isMode: 'audio',
-                timeRemaining: this.props.audioDuration
+                timeRemaining: this.props.audioDuration,
+                
             })
             this.increase('progressCustomized', (0))
         }
@@ -430,7 +468,8 @@ export default class Media extends Component {
             this.setState({
                 showMenu: false,
                 isMode: 'video',
-                timeRemaining: this.props.videoDuration
+                timeRemaining: this.props.videoDuration,
+                cameraType: RNCamera.Constants.Type.back
             })
             this.increase('progressCustomized', (0))
         }
@@ -493,11 +532,11 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: '100%',
         height: '100%',
-        marginTop: 60,
+        marginTop: 54,
         top: 0,
         marginBottom: 90,
-        backgroundColor: 'black'
-
+        backgroundColor: 'black',
+        alignItems:'stretch'
     },
     capture: {
         alignSelf: 'center',
