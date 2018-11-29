@@ -1,10 +1,11 @@
+
 'use strict';
 import React, { Component } from 'react';
 import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View, Platform, Image, Dimensions, StatusBar
+    View, Platform, Image, Dimensions, StatusBar, ActivityIndicator
 } from 'react-native';
 import PropTypes from 'prop-types';
 import { RNCamera } from 'react-native-camera';
@@ -15,7 +16,8 @@ import Video from 'react-native-video';
 import ImagePicker from 'react-native-image-crop-picker';
 import SafeAreaView from "react-native-safe-area-view";
 import RNThumbnail from 'react-native-thumbnail';
-import Permissions from 'react-native-permissions'
+import Permissions from 'react-native-permissions';
+import SoundRecorder from 'react-native-sound-recorder';
 
 export default class Media extends Component {
 
@@ -71,6 +73,7 @@ export default class Media extends Component {
             progress: 0,
             progressWithOnComplete: 0,
             progressCustomized: 0,
+            animating: false
         }
 
 componentDidMount ()
@@ -194,11 +197,18 @@ this._checkOS()
                             value={this.state.progressCustomized}
                         />}
                 <View style={{ position: 'absolute', width: '100%', justifyContent: 'center', bottom: 0, padding: 10, backgroundColor: 'black' }}>
-
-                    <TouchableOpacity onPress={() => this.goToCapturedMedia()} style={{ position: 'absolute', marginLeft: 40, height: 40, width: 40, borderRadius: 5 }}>
-                        {this._mediaPreview()}
-                    </TouchableOpacity>
-
+                    {
+                        this.state.animating === true ?
+                            <ActivityIndicator
+                                animating={this.state.animating}
+                                color='#bc2b78'
+                                size="large"
+                                style={styles.activityIndicator} />
+                            :
+                            <TouchableOpacity onPress={() => this.goToCapturedMedia()} style={{ position: 'absolute', marginLeft: 40, height: 40, width: 40, borderRadius: 5 }}>
+                                {this._mediaPreview()}
+                            </TouchableOpacity>
+                    }
 
                     <TouchableOpacity
                         onPress={() => this.captureMedia()}
@@ -280,12 +290,17 @@ console.log (item.mime)
     captureMedia = async function () {
         if (this.camera) {
             if (this.state.isMode === 'image') {
-                const options = { quality: 0.5 , fixOrientation: true };
+                const options = { quality: 0.5, fixOrientation: true };
+                this.setState({
+                    animating: true
+                })
                 const data = await this.camera.takePictureAsync(options);
                 data.type = "image";
                 data.comment = null;
                 this._mediaFiles.push(data);
-                this.setState({});
+                this.setState({
+                    animating: false
+                })
             }
             else if (this.state.isMode === 'video') {
                 // console.log('video')
@@ -303,8 +318,10 @@ console.log (item.mime)
                         console.log(result.path);
                         data.thumbnail =  result.path // thumbnail path
                         this._mediaFiles.push(data);
-                        
-                        this.setState({});
+
+                        this.setState({
+                            animating: false
+                        })
                         this.increase('progressCustomized', (0))
                     })
                    
@@ -313,36 +330,60 @@ console.log (item.mime)
                     console.log("stop Recording")
                     this.stopRecordingTimer();
                     this.camera.stopRecording();
+                    this.setState({
+                        animating: true
+                    })
                     this.increase('progressCustomized', (0))
                 }
             }
         }
         else if (this.state.isMode === 'audio') {
+            var _this=this;
             var milliseconds = (new Date).getTime();
             this.audioCapturing = !this.audioCapturing;
             // console.log(this.videoCapturing);
             if (this.audioCapturing) {
                 this.startRecordingTimer();
-                const options = {
-                    sampleRate: 16000,  // default 44100
-                    channels: 1,        // 1 or 2, default 1
-                    bitsPerSample: 16,  // 8 or 16, default 16
-                    wavFile: milliseconds + ".wav" // default 'audio.wav'
-                };
-                AudioRecord.init(options);
-                AudioRecord.start();
-                console.log("this.audioFile.options.start")
-                console.log("StartFileName" + this.audioFile.options.wavFile)
+
+                SoundRecorder.start(SoundRecorder.PATH_CACHE +'/'+ milliseconds+'.mp4', {
+                    format: SoundRecorder.FORMAT_MPEG_4, 
+                    encoder: SoundRecorder.ENCODER_AAC
+                })
+                .then(function() {
+                    console.log('started recording');
+                });
+
+                // const options = {
+                //     sampleRate: 16000,  // default 44100
+                //     channels: 1,        // 1 or 2, default 1
+                //     bitsPerSample: 16,  // 8 or 16, default 16
+                //     wavFile: milliseconds + ".wav" // default 'audio.wav'
+                // };
+                // AudioRecord.init(options);
+                // AudioRecord.start();
+                // console.log("this.audioFile.options.start")
+                // console.log("StartFileName" + this.audioFile.options.wavFile)
             }
             else {
-                await AudioRecord.stop();
-                const audioFile = await AudioRecord.stop();
-                this._mediaFiles.push({ uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining, comment: null });
-                this.stopRecordingTimer();
-                this.audioUri = audioFile;
-                // alert(this.audioUri);
-                console.log("this.audioFile.options.wavFile")
-                console.log(this.audioFile.options.wavFile)
+
+                SoundRecorder.stop()
+                .then(function(result) {
+                    console.log('stopped recording, audio file saved at: ' + result.path);
+                    _this._mediaFiles.push({ uri: result.path, type: 'audio', duration: _this.props.audioDuration - _this.state.timeRemaining, comment: null });
+                    _this.stopRecordingTimer();
+                    _this.audioUri = result.path;
+
+                });
+
+
+                // await AudioRecord.stop();
+                // const audioFile = await AudioRecord.stop();
+                // this._mediaFiles.push({ uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining, comment: null });
+                // this.stopRecordingTimer();
+                // this.audioUri = audioFile;
+                // // alert(this.audioUri);
+                // console.log("this.audioFile.options.wavFile")
+                // console.log(this.audioFile.options.wavFile)
                
                 // this.setState({});
             }
@@ -525,15 +566,15 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'column',
         backgroundColor: 'black',
-   //     paddingTop: (Platform.OS === "ios" ? 20 : 0)
+       // paddingTop: (Platform.OS === "ios" ? 20 : 0)
     },
 
     preview: {
-        position: 'absolute',
+      //  position: 'absolute',
         width: '100%',
         height: '100%',
-        marginTop: 54,
-        top: 0,
+        // marginTop: 54,
+        // top: 0,
         marginBottom: 90,
         backgroundColor: 'black',
         alignItems:'stretch'
@@ -627,5 +668,14 @@ const styles = StyleSheet.create({
         position: 'absolute',
         borderRadius: 0,
     },
+    activityIndicator: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 80,
+        zIndex: 999,
+        position: 'absolute',
+        marginLeft: 40,
+    }
 
 });
