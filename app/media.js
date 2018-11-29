@@ -5,7 +5,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View, Platform, Image, Dimensions, StatusBar, ActivityIndicator
+    View, Platform, Image, Dimensions, StatusBar, ActivityIndicator,
 } from 'react-native';
 import PropTypes from 'prop-types';
 import { RNCamera } from 'react-native-camera';
@@ -18,6 +18,7 @@ import SafeAreaView from "react-native-safe-area-view";
 import RNThumbnail from 'react-native-thumbnail';
 import Permissions from 'react-native-permissions';
 import SoundRecorder from 'react-native-sound-recorder';
+import BlinkView from './BlinkView';
 
 export default class Media extends Component {
 
@@ -29,6 +30,7 @@ export default class Media extends Component {
     audioUri = '';
     _mediaFiles = [];
     thumbnailUri = '';
+    _bottomHeight = 0;
 
     _interval = null;
 
@@ -57,8 +59,8 @@ export default class Media extends Component {
         this.downButtonChangeMode = this.downButtonChangeMode.bind(this);
         this.goToCapturedMedia = this.goToCapturedMedia.bind(this);
         this.pickMediaFromGallery = this.pickMediaFromGallery.bind(this);
-        this.permissionPopup=this.permissionPopup.bind(this);
-        this._checkOS=this._checkOS.bind(this);
+        this.permissionPopup = this.permissionPopup.bind(this);
+        this._checkOS = this._checkOS.bind(this);
     }
 
     state =
@@ -73,39 +75,37 @@ export default class Media extends Component {
             progress: 0,
             progressWithOnComplete: 0,
             progressCustomized: 0,
-            animating: false
+            animating: false,
+            isBlinking: false,
+            bottomHeight: 0
         }
 
-componentDidMount ()
-{
-this._checkOS()
-}
-        permissionPopup = () => {
-            Permissions.request('photo').then(response => {
-              // Returns once the user has chosen to 'allow' or to 'not allow' access
-              // Response is one of: 'authorized', 'denied', 'restricted', or 'undetermined'
-             if(response==='authorized')
-             {
-        console.log ("Authorized")
-             }
-             else
-             {
-                 this.props.navigation.pop();
-             }
-            })
-          }
-         
-          _checkOS = () => {
-            if(Platform.OS==='android')
-            {
-        const value=  this.permissionPopup();
-        console.log(value);
-        
-          //this._editImage();
+    componentDidMount() {
+        this._checkOS()
+    }
+    permissionPopup = () => {
+        Permissions.request('photo').then(response => {
+            // Returns once the user has chosen to 'allow' or to 'not allow' access
+            // Response is one of: 'authorized', 'denied', 'restricted', or 'undetermined'
+            if (response === 'authorized') {
+                console.log("Authorized")
             }
-          
-         
-          }
+            else {
+                this.props.navigation.pop();
+            }
+        })
+    }
+
+    _checkOS = () => {
+        if (Platform.OS === 'android') {
+            const value = this.permissionPopup();
+            //     console.log(value);
+
+            //this._editImage();
+        }
+
+
+    }
 
     increase = (key, value) => {
         this.setState({
@@ -117,11 +117,16 @@ this._checkOS()
     render() {
         const barWidth = Dimensions.get('screen').width;
         const progressCustomStyles = {
-            backgroundColor: '#D31145',
+            backgroundColor: 'red',
             borderRadius: 0,
             height: 3,
             borderWidth: 0,
-            padding: 0
+            padding: 0,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 99999999999
         };
 
         return (
@@ -136,7 +141,17 @@ this._checkOS()
                     {
                         this.state.isMode === 'video' || this.state.isMode === 'audio' ?
                             <View style={styles.timerContainer}>
-                                <View style={styles.timerDot}></View>
+
+
+                                {
+                                    this.state.isBlinking ?
+                                        <BlinkView blinking={true} delay={500}>
+                                            <View style={styles.timerDot}></View>
+                                        </BlinkView>
+                                        :
+                                        <View style={styles.timerDot}></View>
+                                }
+
                                 <Text style={styles.timer}>
                                     {this.state.timeRemaining} Secs
                     </Text>
@@ -163,21 +178,45 @@ this._checkOS()
                 </View>
 
                 {
-                    this.state.isMode === 'audio' ?
-                        <Image style={styles.preview} source={require('./assets/images/audio_wallpaper_phone.png')}></Image> :
-                        <RNCamera
-                            ref={camera => { this.camera = camera; }}
-                            style={styles.preview}
-                            type={this.state.cameraType}
-                            captureAudio={true}
-                            flashMode={this.state.flashMode}
-                            playSoundOnCapture={true}
-                            permissionDialogTitle={'Camera permission required'}
-                            permissionDialogMessage={'We need camera permission to capture evidence'}
-                            onGoogleVisionBarcodesDetected={({ barcodes }) => {
-                                console.log(barcodes)
-                            }} />
+
+
+                    <View style={styles.preview}>
+
+                        {
+                            this.state.isMode === 'audio' ?
+                                <Image style={styles.preview} source={require('./assets/images/audio_wallpaper_phone.png')}></Image> :
+                                // <View style={{backgroundColor: 'red', flex: 1}} ></View>
+                                <RNCamera
+                                    ref={camera => { this.camera = camera; }}
+                                    style={styles.preview}
+                                    type={this.state.cameraType}
+                                    captureAudio={true}
+                                    flashMode={this.state.flashMode}
+                                    playSoundOnCapture={true}
+                                    permissionDialogTitle={'Camera permission required'}
+                                    permissionDialogMessage={'We need camera permission to capture evidence'}
+                                    onGoogleVisionBarcodesDetected={({ barcodes }) => {
+                                        //     console.log(barcodes)
+                                    }} />
+                        }
+
+                    </View>
+
                 }
+
+
+                <View style={{ flex: 1, zIndex: 99, position: 'absolute', bottom: this._bottomHeight }} >
+                    {
+                        // this.state.isMode === 'image' ? null :
+                        <ProgressBarAnimated
+                            {...progressCustomStyles}
+                            width={barWidth}
+                            maxValue={100}
+                            value={this.state.progressCustomized}
+                        />
+                    }
+                </View>
+
                 { /* Toggle mode popup */
                     this.state.showMenu === true ? <View style={styles.menuContainer}>
                         <Image style={styles.imageContainerOfMenu}
@@ -188,15 +227,20 @@ this._checkOS()
                     </View>
                         : null
                 }
-                {
-                    this.state.isMode === 'image' ? null :
-                        <ProgressBarAnimated
-                            {...progressCustomStyles}
-                            width={barWidth}
-                            maxValue={100}
-                            value={this.state.progressCustomized}
-                        />}
-                <View style={{ position: 'absolute', width: '100%', justifyContent: 'center', bottom: 0, padding: 10, backgroundColor: 'black' }}>
+
+
+                <View style={{ position: 'absolute', width: '100%', justifyContent: 'center', bottom: 0, padding: 10, backgroundColor: 'black' }}
+                    onLayout={(event) => {
+                        var { x, y, width, height } = event.nativeEvent.layout;
+                        this.setState({
+                            bottomHeight: height
+                        })
+                        this._bottomHeight = height;
+                        // console.log('showing options');
+                        // this.setState({
+                        //     actionBarHeight: height
+                        // })
+                    }}>
                     {
                         this.state.animating === true ?
                             <ActivityIndicator
@@ -222,7 +266,6 @@ this._checkOS()
                                                 this.state.isMode === 'audio' && !this.audioCapturing ? require('./assets/icons/video_snap.png') :
                                                     require('./assets/icons/video_pause.png')
                                             ))
-
                             }
                         ></Image>
 
@@ -247,21 +290,21 @@ this._checkOS()
             maxFiles: 2,
             forceJpg: false,
             cropping: false,
-          compressImageQuality:0.7
+            compressImageQuality: 0.7
         }).then(images => {
 
-            console.log(images);
+            // console.log(images);
 
             images.forEach((item) => {
 
                 if (item.mime.includes('image')) {
 
-console.log (item.mime)
+                    //   console.log(item.mime)
                     var data = item
                     data.type = "image";
                     data.uri = "file://" + item.path;
                     data.comment = null;
-                    console.log(data)
+                    //    console.log(data)
                     this._mediaFiles.push(data);
 
                 }
@@ -305,7 +348,7 @@ console.log (item.mime)
             else if (this.state.isMode === 'video') {
                 // console.log('video')
 
-                const options = {  quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
+                const options = { quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
 
                 this.videoCapturing = !this.videoCapturing;
                 if (this.videoCapturing) {
@@ -315,8 +358,8 @@ console.log (item.mime)
                     data.type = "video";
                     data.comment = null;
                     RNThumbnail.get(data.uri).then((result) => {
-                        console.log(result.path);
-                        data.thumbnail =  result.path // thumbnail path
+                        //             console.log(result.path);
+                        data.thumbnail = result.path // thumbnail path
                         this._mediaFiles.push(data);
 
                         this.setState({
@@ -324,7 +367,7 @@ console.log (item.mime)
                         })
                         this.increase('progressCustomized', (0))
                     })
-                   
+
                 }
                 else {
                     console.log("stop Recording")
@@ -338,20 +381,20 @@ console.log (item.mime)
             }
         }
         else if (this.state.isMode === 'audio') {
-            var _this=this;
+            var _this = this;
             var milliseconds = (new Date).getTime();
             this.audioCapturing = !this.audioCapturing;
             // console.log(this.videoCapturing);
             if (this.audioCapturing) {
                 this.startRecordingTimer();
 
-                SoundRecorder.start(SoundRecorder.PATH_CACHE +'/'+ milliseconds+'.mp4', {
-                    format: SoundRecorder.FORMAT_MPEG_4, 
+                SoundRecorder.start(SoundRecorder.PATH_CACHE + '/' + milliseconds + '.mp4', {
+                    format: SoundRecorder.FORMAT_MPEG_4,
                     encoder: SoundRecorder.ENCODER_AAC
                 })
-                .then(function() {
-                    console.log('started recording');
-                });
+                    .then(function () {
+                        //            console.log('started recording');
+                    });
 
                 // const options = {
                 //     sampleRate: 16000,  // default 44100
@@ -367,13 +410,13 @@ console.log (item.mime)
             else {
 
                 SoundRecorder.stop()
-                .then(function(result) {
-                    console.log('stopped recording, audio file saved at: ' + result.path);
-                    _this._mediaFiles.push({ uri: result.path, type: 'audio', duration: _this.props.audioDuration - _this.state.timeRemaining, comment: null });
-                    _this.stopRecordingTimer();
-                    _this.audioUri = result.path;
+                    .then(function (result) {
+                        //             console.log('stopped recording, audio file saved at: ' + result.path);
+                        _this._mediaFiles.push({ uri: result.path, type: 'audio', duration: _this.props.audioDuration - _this.state.timeRemaining, comment: null });
+                        _this.stopRecordingTimer();
+                        _this.audioUri = result.path;
 
-                });
+                    });
 
 
                 // await AudioRecord.stop();
@@ -384,13 +427,24 @@ console.log (item.mime)
                 // // alert(this.audioUri);
                 // console.log("this.audioFile.options.wavFile")
                 // console.log(this.audioFile.options.wavFile)
-               
+
                 // this.setState({});
             }
         }
     };
 
     startRecordingTimer = () => {
+
+        // this.setState (
+        //     {
+        //         isBlinking:true
+        //     }
+        // );
+
+        this.setState({ isBlinking: true });
+        //  console.log("isBlinking" + this.state.isBlinking)
+
+
         this._interval = setInterval(() => {
             this.setState({ timeRemaining: this.state.timeRemaining - 1 }, () => {
 
@@ -403,10 +457,10 @@ console.log (item.mime)
                 else if (this.state.isMode === 'audio') {
                     remainingTime = ((this.props.audioDuration - this.state.timeRemaining) / this.props.audioDuration) * 100
                 }
-                console.log(remainingTime)
+                //        console.log(remainingTime)
                 this.increase('progressCustomized', (remainingTime))
 
-                console.log(remainingTime)
+                //      console.log(remainingTime)
 
                 if (this.state.timeRemaining == 0) {
                     this.captureMedia();
@@ -421,6 +475,11 @@ console.log (item.mime)
         });
         clearInterval(this._interval);
         this.increase('progressCustomized', (0))
+        this.setState(
+            {
+                isBlinking: false
+            }
+        );
     }
 
     flash = () => {
@@ -442,13 +501,13 @@ console.log (item.mime)
                     this.setState({});
                 },
                 onCrossedPressed: (previewFile) => {
-              
-                    console.log ("Cross Button Pressed")  
+
+                    console.log("Cross Button Pressed")
                 },
                 onDonePressed: (previewFile) => {
-                    this._mediaFiles.pop ()
-                    this._mediaFiles.push (previewFile)
-                   console.log ("Done Button Pressed")
+                    this._mediaFiles.pop()
+                    this._mediaFiles.push(previewFile)
+                    //       console.log("Done Button Pressed")
                     this.setState({});
                 }
             });
@@ -478,7 +537,7 @@ console.log (item.mime)
                 showMenu: false,
                 isMode: 'audio',
                 timeRemaining: this.props.audioDuration,
-                
+
             })
             this.increase('progressCustomized', (0))
         }
@@ -530,19 +589,19 @@ console.log (item.mime)
 
         var lastMedia = (this._mediaFiles && this._mediaFiles.length > 0 ? this._mediaFiles[this._mediaFiles.length - 1] : null);
 
-        console.log(lastMedia)
+        // console.log(lastMedia)
         console.log(this._mediaFiles.length + ' / ' + lastMedia);
         if (lastMedia) {
             console.log(lastMedia);
             if (lastMedia.type === 'audio') {
-                view = <Image source={require('./assets/images/audio_wallpaper_phone.png')} style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5,  borderColor: '#dcdcdc', borderWidth: 2 }} />
+                view = <Image source={require('./assets/images/audio_wallpaper_phone.png')} style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderColor: '#dcdcdc', borderWidth: 2 }} />
             }
             else if (lastMedia.type === 'image') {
-                console.log(lastMedia.thumbnail)
+                //      console.log(lastMedia.thumbnail)
                 view = <Image source={{ uri: lastMedia.uri }}
                     style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderWidth: 2, borderColor: '#dcdcdc', backgroundColor: 'black' }} />
             }
-            else { 
+            else {
 
                 view = <Image source={{ uri: lastMedia.thumbnail }}
 
@@ -565,19 +624,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         flexDirection: 'column',
-        backgroundColor: 'black',
-       // paddingTop: (Platform.OS === "ios" ? 20 : 0)
+        backgroundColor: '#0171B9',
+        paddingTop: (Platform.OS === "ios" ? 20 : 0)
     },
 
     preview: {
-      //  position: 'absolute',
+        //  position: 'absolute',
         width: '100%',
         height: '100%',
         // marginTop: 54,
         // top: 0,
         marginBottom: 90,
         backgroundColor: 'black',
-        alignItems:'stretch'
+        alignItems: 'stretch'
     },
     capture: {
         alignSelf: 'center',
@@ -586,15 +645,15 @@ const styles = StyleSheet.create({
         marginRight: 40,
         right: 0,
         position: 'absolute',
-        height : 50,
-        width:50,
-        backgroundColor:'#807F7F',
-        borderRadius:25,
-        alignItems:'center',
+        height: 50,
+        width: 50,
+        backgroundColor: '#807F7F',
+        borderRadius: 25,
+        alignItems: 'center',
         justifyContent: 'center',
     },
     headerContainer: {
-    //    paddingTop: (Platform.OS === "ios" ? 20 : 0),
+        //    paddingTop: (Platform.OS === "ios" ? 20 : 0),
         backgroundColor: '#0171B9',
         width: '100%',
         justifyContent: 'space-between',
@@ -629,7 +688,7 @@ const styles = StyleSheet.create({
     },
     rightButtonHolder: {
         // flex: 1,
-     //   position:'absolute',
+        //   position:'absolute',
         alignSelf: 'flex-end',
         justifyContent: 'center',
         alignItems: 'flex-end',
@@ -649,7 +708,7 @@ const styles = StyleSheet.create({
     imageContainerOfMenu: {
         width: 44,
         height: 89,
-  
+
     }
     ,
     touchUpOfMenu: {
