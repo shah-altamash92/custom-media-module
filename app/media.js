@@ -9,16 +9,14 @@ import {
 } from 'react-native';
 import PropTypes from 'prop-types';
 import { RNCamera } from 'react-native-camera';
-import AudioRecord from 'react-native-audio-record';
 import ProgressBarAnimated from 'react-native-progress-bar-animated';
-import Video from 'react-native-video';
-//import ImagePicker from 'react-native-image-picker';
 import ImagePicker from 'react-native-image-crop-picker';
 import SafeAreaView from "react-native-safe-area-view";
 import RNThumbnail from 'react-native-thumbnail';
 import Permissions from 'react-native-permissions';
 import SoundRecorder from 'react-native-sound-recorder';
 import BlinkView from './BlinkView';
+import AlertDialog from './AlertDialog';
 
 export default class Media extends Component {
 
@@ -27,11 +25,12 @@ export default class Media extends Component {
     };
     videoCapturing = false;
     audioCapturing = false;
+
     audioUri = '';
     _mediaFiles = [];
     thumbnailUri = '';
     _bottomHeight = 0;
-
+    attachedMediaCounter = 0;
     _interval = null;
 
     /**
@@ -41,7 +40,6 @@ export default class Media extends Component {
         videoDuration: PropTypes.number,
         audioDuration: PropTypes.number
     }
-
 
     /**
      * Default props values
@@ -61,6 +59,9 @@ export default class Media extends Component {
         this.pickMediaFromGallery = this.pickMediaFromGallery.bind(this);
         this.permissionPopup = this.permissionPopup.bind(this);
         this._checkOS = this._checkOS.bind(this);
+        const { navigation } = this.props;
+        this.attachedMediaCounter = navigation.getParam('mediaCounter', 0);
+        this._dialogCallback = this._dialogCallback.bind(this);
     }
 
     state =
@@ -77,17 +78,34 @@ export default class Media extends Component {
             progressCustomized: 0,
             animating: false,
             isBlinking: false,
-            bottomHeight: 0
+            bottomHeight: 0,
+            permissionState: false,
+            mediaLimitError: false
+
         }
 
+    componentWillUnmount() {
+
+        if (this.state.videoCapturing) {
+            this.camera.stopRecording();
+        }
+        if (this.state.audioCapturing) {
+            SoundRecorder.stop();
+        }
+    }
+
     componentDidMount() {
+        console.log("component did Mount")
         this._checkOS()
     }
     permissionPopup = () => {
-        Permissions.request('photo').then(response => {
+        Permissions.request('photo', 'camera', 'Microphone').then(response => {
             // Returns once the user has chosen to 'allow' or to 'not allow' access
             // Response is one of: 'authorized', 'denied', 'restricted', or 'undetermined'
             if (response === 'authorized') {
+                this.setState({
+                    permissionState: true
+                })
                 console.log("Authorized")
             }
             else {
@@ -99,12 +117,22 @@ export default class Media extends Component {
     _checkOS = () => {
         if (Platform.OS === 'android') {
             const value = this.permissionPopup();
-            //     console.log(value);
+            console.log(value);
 
             //this._editImage();
         }
-
-
+        else {
+            this.setState({
+                permissionState: true
+            })
+        }
+    }
+    _dialogCallback = () => {
+ 
+            this.setState({
+                mediaLimitError: false  
+            });
+        
     }
 
     increase = (key, value) => {
@@ -114,6 +142,7 @@ export default class Media extends Component {
 
         console.log(value)
     }
+
     render() {
         const barWidth = Dimensions.get('screen').width;
         const progressCustomStyles = {
@@ -179,13 +208,11 @@ export default class Media extends Component {
 
                 {
 
-
                     <View style={styles.preview}>
 
                         {
-                            this.state.isMode === 'audio' ?
+                            this.state.permissionState === true ? (this.state.isMode === 'audio' ?
                                 <Image style={styles.preview} source={require('./assets/images/audio_wallpaper_phone.png')}></Image> :
-                                // <View style={{backgroundColor: 'red', flex: 1}} ></View>
                                 <RNCamera
                                     ref={camera => { this.camera = camera; }}
                                     style={styles.preview}
@@ -196,8 +223,8 @@ export default class Media extends Component {
                                     permissionDialogTitle={'Camera permission required'}
                                     permissionDialogMessage={'We need camera permission to capture evidence'}
                                     onGoogleVisionBarcodesDetected={({ barcodes }) => {
-                                        //     console.log(barcodes)
-                                    }} />
+                                 //       console.log(barcodes)
+                                    }} />) : null
                         }
 
                     </View>
@@ -273,10 +300,20 @@ export default class Media extends Component {
                     {/* Toggle mode button */}
                     <TouchableOpacity onPress={this.showAndHideMenu.bind(this)} style={styles.optionsMenu}  >
                         <Image source={this.state.isMode === 'image' ? require('./assets/icons/camera.png') : (this.state.isMode === 'video' ? require('./assets/icons/video.png') : require('./assets/icons/audio.png'))}
-                            style={{ height: 25, width: 25, }} >
+                            style={{ height: 20, width: 20, }} >
                         </Image>
                     </TouchableOpacity>
+
+                    <AlertDialog
+                    show={this.state.mediaLimitError}
+                    title={'FrogProgress'}
+                    message= "You already have multiple pieces of evidence ready for upload. Please submit them before adding more"
+                    negativeButtonText = '' positiveButtonText= "OK"
+                    onButtonClicked={this._dialogCallback} />
+
                 </View>
+               
+                
 
             </SafeAreaView>
         );
@@ -285,55 +322,73 @@ export default class Media extends Component {
 
     pickMediaFromGallery = () => {
 
-        ImagePicker.openPicker({
-            multiple: true,
-            maxFiles: 2,
-            forceJpg: false,
-            cropping: false,
-            compressImageQuality: 0.7
-        }).then(images => {
 
-            // console.log(images);
-
-            images.forEach((item) => {
-
-                if (item.mime.includes('image')) {
-
-                    //   console.log(item.mime)
-                    var data = item
-                    data.type = "image";
-                    data.uri = "file://" + item.path;
-                    data.comment = null;
-                    //    console.log(data)
-                    this._mediaFiles.push(data);
-
-                }
-                else if (item.mime.includes('video')) {
-
-                    var data = item
-                    data.type = "video";
-                    data.uri = item.path;
-                    data.comment = null;
-                    RNThumbnail.get(item.path).then((result) => {
-                        // thumbnail path
-                        this.thumbnailUri = result.path
-                        data.thumbnail = this.thumbnailUri
+        if (this.attachedMediaCounter + this._mediaFiles.length < 10)
+        {
+            ImagePicker.openPicker({
+                multiple: true,
+                maxFiles: (10 - (this.attachedMediaCounter + this._mediaFiles.length)) ,
+                forceJpg: false,
+                cropping: false,
+                compressImageQuality: 0.7
+            }).then(images => {
+    
+                // console.log(images);
+    
+                images.forEach((item) => {
+    
+                    if (item.mime.includes('image')) {
+    
+                        //   console.log(item.mime)
+                        var data = item
+                        data.type = "image";
+                        data.uri = "file://" + item.path;
+                        data.comment = null;
+                        //    console.log(data)
                         this._mediaFiles.push(data);
-                        this.setState({});
-                    })
+    
+                    }
+                    else if (item.mime.includes('video')) {
+    
+                        var data = item
+                        data.type = "video";
+                        data.uri = item.path;
+                        data.comment = null;
+                        RNThumbnail.get(item.path).then((result) => {
+                            // thumbnail path
+                            this.thumbnailUri = result.path
+                            data.thumbnail = this.thumbnailUri
+                            this._mediaFiles.push(data);
+                            this.setState({});
+                        })
+    
+                    }
+                })
+                this.setState({});
+            });
+        }
+        else
+        {
 
+          //  console.log ("Limit Exceeds")
 
-                }
-            })
-            this.setState({});
-        });
+            this.setState({
+                mediaLimitError: true
+            });
+        }
+
+       
 
     }
 
     captureMedia = async function () {
+
+         if (this.attachedMediaCounter + this._mediaFiles.length < 10)
+        {
+
         if (this.camera) {
             if (this.state.isMode === 'image') {
-                const options = { quality: 0.5, fixOrientation: true };
+                const options = { quality: 0.5, fixOrientation: true, pictureSize: "640x480", forceUpOrientation: true };
                 this.setState({
                     animating: true
                 })
@@ -341,8 +396,10 @@ export default class Media extends Component {
                 data.type = "image";
                 data.comment = null;
                 this._mediaFiles.push(data);
+                
                 this.setState({
                     animating: false
+                    
                 })
             }
             else if (this.state.isMode === 'video') {
@@ -366,6 +423,7 @@ export default class Media extends Component {
                             animating: false
                         })
                         this.increase('progressCustomized', (0))
+                        
                     })
 
                 }
@@ -395,17 +453,6 @@ export default class Media extends Component {
                     .then(function () {
                         //            console.log('started recording');
                     });
-
-                // const options = {
-                //     sampleRate: 16000,  // default 44100
-                //     channels: 1,        // 1 or 2, default 1
-                //     bitsPerSample: 16,  // 8 or 16, default 16
-                //     wavFile: milliseconds + ".wav" // default 'audio.wav'
-                // };
-                // AudioRecord.init(options);
-                // AudioRecord.start();
-                // console.log("this.audioFile.options.start")
-                // console.log("StartFileName" + this.audioFile.options.wavFile)
             }
             else {
 
@@ -417,20 +464,15 @@ export default class Media extends Component {
                         _this.audioUri = result.path;
 
                     });
-
-
-                // await AudioRecord.stop();
-                // const audioFile = await AudioRecord.stop();
-                // this._mediaFiles.push({ uri: audioFile, type: 'audio', duration: this.props.audioDuration - this.state.timeRemaining, comment: null });
-                // this.stopRecordingTimer();
-                // this.audioUri = audioFile;
-                // // alert(this.audioUri);
-                // console.log("this.audioFile.options.wavFile")
-                // console.log(this.audioFile.options.wavFile)
-
-                // this.setState({});
             }
         }
+    }
+    else 
+    {
+        this.setState({
+            mediaLimitError: true
+        });
+    }
     };
 
     startRecordingTimer = () => {
@@ -509,7 +551,11 @@ export default class Media extends Component {
                     this._mediaFiles.push(previewFile)
                     //       console.log("Done Button Pressed")
                     this.setState({});
-                }
+
+                    console.log(this._mediaFiles);
+                    this.props.navigation.state.params.onComplete(this._mediaFiles);
+                    this.props.navigation.pop();
+                }, 'previewType':false
             });
         }
     }
@@ -645,11 +691,12 @@ const styles = StyleSheet.create({
         marginRight: 40,
         right: 0,
         position: 'absolute',
-        height: 50,
-        width: 50,
-        backgroundColor: '#807F7F',
-        borderRadius: 25,
-        alignItems: 'center',
+        height : 40,
+        width:40,
+     //   backgroundColor:'#807F7F',
+     backgroundColor:'#303030', 
+     borderRadius:25,
+        alignItems:'center',
         justifyContent: 'center',
     },
     headerContainer: {
@@ -695,24 +742,24 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     menuContainer: {
-        width: 30,
+        width: 40,
         height: 80,
         position: 'absolute',
         right: 0,
         zIndex: 999999,
-        marginRight: 60,
-        marginBottom: 100,
+        marginRight: 40,
+        marginBottom: 60,
         bottom: 40,
         borderRadius: 10,
     },
     imageContainerOfMenu: {
-        width: 44,
-        height: 89,
+        width: 40,
+        height: 80,
 
     }
     ,
     touchUpOfMenu: {
-        width: 30,
+        width: 40,
         height: 40,
         position: 'absolute',
         marginBottom: 40,
@@ -721,7 +768,7 @@ const styles = StyleSheet.create({
     },
 
     touchDownOfMenu: {
-        width: 30,
+        width: 40,
         height: 40,
         bottom: 0,
         position: 'absolute',
