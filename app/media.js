@@ -17,6 +17,7 @@ import Permissions from 'react-native-permissions';
 import SoundRecorder from 'react-native-sound-recorder';
 import BlinkView from './BlinkView';
 import AlertDialog from './AlertDialog';
+import { MAX_MEDIA_UPLOAD } from '../../../app/constants/constants';
 
 export default class Media extends Component {
 
@@ -32,7 +33,7 @@ export default class Media extends Component {
     _bottomHeight = 0;
     attachedMediaCounter = 0;
     _interval = null;
-
+    _alertMessage = "";
     /**
      * Custom props for this component
      */
@@ -56,7 +57,7 @@ export default class Media extends Component {
         this.upButtonChangeMode = this.upButtonChangeMode.bind(this);
         this.downButtonChangeMode = this.downButtonChangeMode.bind(this);
         this.goToCapturedMedia = this.goToCapturedMedia.bind(this);
-        this.pickMediaFromGallery = this.pickMediaFromGallery.bind(this);
+        this._pickMediaFromGallery = this._pickMediaFromGallery.bind(this);
         this.permissionPopup = this.permissionPopup.bind(this);
         this._checkOS = this._checkOS.bind(this);
         const { navigation } = this.props;
@@ -98,7 +99,7 @@ export default class Media extends Component {
     }
 
     componentDidMount() {
-        console.log("component did Mount")
+        // console.log("component did Mount")
         setTimeout(() => {
             this._checkOS();
         }, 300);
@@ -122,8 +123,7 @@ export default class Media extends Component {
     _checkOS = () => {
         if (Platform.OS === 'android') {
             const value = this.permissionPopup();
-            console.log(value);
-
+            // console.log(value);
             //this._editImage();
         }
         else {
@@ -145,7 +145,7 @@ export default class Media extends Component {
             [key]: + value,
         });
 
-        console.log(value)
+        // console.log(value)
     }
 
     render() {
@@ -192,7 +192,7 @@ export default class Media extends Component {
                                                 <View style={styles.timerDot}></View>
                                             </BlinkView>
                                             :
-                                            <View style={styles.timerDot}></View>
+                                            null
                                     }
 
                                     <Text style={styles.timer}>
@@ -214,7 +214,7 @@ export default class Media extends Component {
                                 }
                                 {
                                     this.state.isMode === 'audio' ? null :
-                                        <TouchableOpacity onPress={this.pickMediaFromGallery} style={{ padding: 10 }}>
+                                        <TouchableOpacity onPress={this._pickMediaFromGallery} style={{ padding: 10 }}>
                                             <Image style={{ height: 20, width: 20 }}
                                                 source={require('./assets/icons/gallery.png')}
                                             ></Image>
@@ -261,17 +261,6 @@ export default class Media extends Component {
                         />
                     }
                 </View>
-
-                {
-                    //     this.state.showMenu === true ? <View style={styles.menuContainer}>
-                    //         <Image style={styles.imageContainerOfMenu}
-                    //             source={(this.state.isMode === 'image' ? require('./assets/icons/camera_switch_option.png') : (this.state.isMode === 'video' ? require('./assets/icons/video_switch_option.png') : require('./assets/icons/audio_switch_option.png')))}
-                    //         ></Image>
-                    //         <TouchableOpacity style={styles.touchUpOfMenu} onPress={() => this.upButtonChangeMode()}></TouchableOpacity>
-                    //         <TouchableOpacity style={styles.touchDownOfMenu} onPress={() => this.downButtonChangeMode()}></TouchableOpacity>
-                    //     </View>
-                    //         : null
-                }
 
                 {
                     this.state.showMenu === true ? <Animated.View style={[styles.menuContainer, {
@@ -349,7 +338,7 @@ export default class Media extends Component {
                     <AlertDialog
                         show={this.state.mediaLimitError}
                         title={'FrogProgress'}
-                        message="You already have multiple pieces of evidence ready for upload. Please submit them before adding more"
+                        message={this._alertMessage}
                         negativeButtonText='' positiveButtonText="OK"
                         onButtonClicked={this._dialogCallback} />
 
@@ -362,20 +351,27 @@ export default class Media extends Component {
     }
 
 
-    pickMediaFromGallery = () => {
-
-
-        if (this.attachedMediaCounter + this._mediaFiles.length < 10) {
+    _pickMediaFromGallery = () => {
+        if (this.attachedMediaCounter + this._mediaFiles.length < MAX_MEDIA_UPLOAD) {
             ImagePicker.openPicker({
                 multiple: true,
-                maxFiles: (10 - (this.attachedMediaCounter + this._mediaFiles.length)),
+                maxFiles: (MAX_MEDIA_UPLOAD - (this.attachedMediaCounter + this._mediaFiles.length)),
                 forceJpg: false,
-                cropping: false
+                cropping: false,
+                compressImageQuality: 0.7
             }).then(images => {
 
-                // console.log(images);
+                console.log(images);
+                // console.log(images.length);
 
-                images.forEach((item) => {
+                if (images.length > (MAX_MEDIA_UPLOAD - (this.attachedMediaCounter + this._mediaFiles.length))) {
+                    this._alertMessage = "Only 10 files can be uploaded at a time. You have included more than permitted limit. You can select "+(MAX_MEDIA_UPLOAD - (this.attachedMediaCounter + this._mediaFiles.length))+" more files.";
+                    this.setState({
+                        mediaLimitError: true
+                    });
+                }
+                else {
+                    images.forEach((item) => {
 
                     if (item.mime.includes('image')) {
 
@@ -402,7 +398,6 @@ export default class Media extends Component {
                             this.setState({});
                         }
 
-
                         if (Platform.OS === 'ios') {
                             RNThumbnail.get(item.path).then((result) => {
                                 // thumbnail path
@@ -415,15 +410,16 @@ export default class Media extends Component {
                             )
                         }
 
-                    }
-                })
+                        }
+                    })
+                }
                 this.setState({});
             });
         }
         else {
 
             //  console.log ("Limit Exceeds")
-
+            this._alertMessage = "You already have multiple pieces of evidence ready for upload. Please submit them before adding more";
             this.setState({
                 mediaLimitError: true
             });
@@ -435,8 +431,7 @@ export default class Media extends Component {
 
     captureMedia = async function () {
 
-        if (this.attachedMediaCounter + this._mediaFiles.length < 10) {
-
+        if (this.attachedMediaCounter + this._mediaFiles.length < MAX_MEDIA_UPLOAD) {
             if (this.camera) {
                 if (this.state.isMode === 'image') {
                     const options = { quality: 0.5, fixOrientation: true, pictureSize: "640x480", forceUpOrientation: true };
@@ -533,6 +528,7 @@ export default class Media extends Component {
             }
         }
         else {
+            this._alertMessage = "You already have multiple pieces of evidence ready for upload. Please submit them before adding more";
             this.setState({
                 mediaLimitError: true
             });
@@ -616,7 +612,7 @@ export default class Media extends Component {
                     //       console.log("Done Button Pressed")
                     this.setState({});
 
-                    console.log(this._mediaFiles);
+                    // console.log(this._mediaFiles);
                     this.props.navigation.state.params.onComplete(this._mediaFiles);
                     this.props.navigation.pop();
                 }, 'previewType': false
@@ -742,9 +738,9 @@ export default class Media extends Component {
         var lastMedia = (this._mediaFiles && this._mediaFiles.length > 0 ? this._mediaFiles[this._mediaFiles.length - 1] : null);
 
         // console.log(lastMedia)
-        console.log(this._mediaFiles.length + ' / ' + lastMedia);
+        // console.log(this._mediaFiles.length + ' / ' + lastMedia);
         if (lastMedia) {
-            console.log(lastMedia);
+            // console.log(lastMedia);
             if (lastMedia.type === 'audio') {
                 view = <Image source={require('./assets/images/audio_wallpaper_phone.png')} style={{ position: 'absolute', height: 40, width: 40, borderRadius: 5, borderColor: '#dcdcdc', borderWidth: 2 }} />
             }
@@ -766,7 +762,7 @@ export default class Media extends Component {
     }
 
     _doneClick = () => {
-        console.log(this._mediaFiles);
+        // console.log(this._mediaFiles);
         this.props.navigation.state.params.onComplete(this._mediaFiles);
         this.props.navigation.pop();
     }
