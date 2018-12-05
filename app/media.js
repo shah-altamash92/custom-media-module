@@ -5,7 +5,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View, Platform, Image, Dimensions, StatusBar, ActivityIndicator,
+    View, Platform, Image, Dimensions, StatusBar, ActivityIndicator, Animated
 } from 'react-native';
 import PropTypes from 'prop-types';
 import { RNCamera } from 'react-native-camera';
@@ -62,6 +62,8 @@ export default class Media extends Component {
         const { navigation } = this.props;
         this.attachedMediaCounter = navigation.getParam('mediaCounter', 0);
         this._dialogCallback = this._dialogCallback.bind(this);
+        this.slideBottomToTop = this.slideBottomToTop.bind(this);
+        this.slideTopToBottom = this.slideTopToBottom.bind(this);
     }
 
     state =
@@ -80,7 +82,8 @@ export default class Media extends Component {
             isBlinking: false,
             bottomHeight: 0,
             permissionState: false,
-            mediaLimitError: false
+            mediaLimitError: false,
+            y: new Animated.Value(100),
 
         }
 
@@ -96,7 +99,9 @@ export default class Media extends Component {
 
     componentDidMount() {
         console.log("component did Mount")
-        this._checkOS()
+        setTimeout(() => {
+            this._checkOS();
+        }, 300);
     }
     permissionPopup = () => {
         Permissions.request('photo', 'camera', 'Microphone').then(response => {
@@ -128,11 +133,11 @@ export default class Media extends Component {
         }
     }
     _dialogCallback = () => {
- 
-            this.setState({
-                mediaLimitError: false  
-            });
-        
+
+        this.setState({
+            mediaLimitError: false
+        });
+
     }
 
     increase = (key, value) => {
@@ -163,47 +168,60 @@ export default class Media extends Component {
                 <StatusBar
                     backgroundColor='#0171B9'
                     barStyle="light-content" />
-                <View style={styles.headerContainer}>
-                    <TouchableOpacity style={styles.leftButton} onPress={this._doneClick}>
-                        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
-                    </TouchableOpacity>
+                <View style={styles.headerContainer} >
+                    {
+                        this.videoCapturing || this.audioCapturing ?
+                            <TouchableOpacity style={styles.leftButton} >
+                                <Text style={{ fontSize: 16 }}> </Text>
+                            </TouchableOpacity>
+                            :
+                            <TouchableOpacity style={styles.leftButton} onPress={this._doneClick}>
+                                <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
+                            </TouchableOpacity>
+                    }
                     {
                         this.state.isMode === 'video' || this.state.isMode === 'audio' ?
-                            <View style={styles.timerContainer}>
+
+                            <View style={[styles.centerContainer]} >
+                                <View style={[styles.timerContainer, { height: this.state.headerBarHeight }]}>
 
 
-                                {
-                                    this.state.isBlinking ?
-                                        <BlinkView blinking={true} delay={500}>
+                                    {
+                                        this.state.isBlinking ?
+                                            <BlinkView blinking={true} delay={500}>
+                                                <View style={styles.timerDot}></View>
+                                            </BlinkView>
+                                            :
                                             <View style={styles.timerDot}></View>
-                                        </BlinkView>
-                                        :
-                                        <View style={styles.timerDot}></View>
-                                }
+                                    }
 
-                                <Text style={styles.timer}>
-                                    {this.state.timeRemaining} Secs
+                                    <Text style={styles.timer}>
+                                        {this.state.timeRemaining} Secs
                     </Text>
+                                </View>
                             </View> : null
                     }
-                    <View style={styles.rightButtonHolder}>
-                        {
-                            this.state.isMode === 'image' ?
-                                <TouchableOpacity onPress={() => this.cameraMode()} style={{ padding: 10 }}>
-                                    <Image style={{ height: 20, width: 20 }}
-                                        source={require('./assets/icons/camera_switch.png')}
-                                    ></Image>
-                                </TouchableOpacity> : null
-                        }
-                        {
-                            this.state.isMode === 'audio' ? null :
-                                <TouchableOpacity onPress={this.pickMediaFromGallery} style={{ padding: 10 }}>
-                                    <Image style={{ height: 20, width: 20 }}
-                                        source={require('./assets/icons/gallery.png')}
-                                    ></Image>
-                                </TouchableOpacity>
-                        }
-                    </View>
+                    {
+                        this.videoCapturing || this.audioCapturing ? null :
+                            <View style={styles.rightButtonHolder}>
+                                {
+                                    this.state.isMode === 'audio' ? null : (this.videoCapturing ? null :
+                                        <TouchableOpacity onPress={() => this.cameraMode()} style={{ padding: 10 }}>
+                                            <Image style={{ height: 20, width: 20 }}
+                                                source={require('./assets/icons/camera_switch.png')}
+                                            ></Image>
+                                        </TouchableOpacity>)
+                                }
+                                {
+                                    this.state.isMode === 'audio' ? null :
+                                        <TouchableOpacity onPress={this.pickMediaFromGallery} style={{ padding: 10 }}>
+                                            <Image style={{ height: 20, width: 20 }}
+                                                source={require('./assets/icons/gallery.png')}
+                                            ></Image>
+                                        </TouchableOpacity>
+                                }
+                            </View>
+                    }
                 </View>
 
                 {
@@ -223,7 +241,7 @@ export default class Media extends Component {
                                     permissionDialogTitle={'Camera permission required'}
                                     permissionDialogMessage={'We need camera permission to capture evidence'}
                                     onGoogleVisionBarcodesDetected={({ barcodes }) => {
-                                 //       console.log(barcodes)
+                                        //       console.log(barcodes)
                                     }} />) : null
                         }
 
@@ -244,14 +262,31 @@ export default class Media extends Component {
                     }
                 </View>
 
-                { /* Toggle mode popup */
-                    this.state.showMenu === true ? <View style={styles.menuContainer}>
+                {
+                    //     this.state.showMenu === true ? <View style={styles.menuContainer}>
+                    //         <Image style={styles.imageContainerOfMenu}
+                    //             source={(this.state.isMode === 'image' ? require('./assets/icons/camera_switch_option.png') : (this.state.isMode === 'video' ? require('./assets/icons/video_switch_option.png') : require('./assets/icons/audio_switch_option.png')))}
+                    //         ></Image>
+                    //         <TouchableOpacity style={styles.touchUpOfMenu} onPress={() => this.upButtonChangeMode()}></TouchableOpacity>
+                    //         <TouchableOpacity style={styles.touchDownOfMenu} onPress={() => this.downButtonChangeMode()}></TouchableOpacity>
+                    //     </View>
+                    //         : null
+                }
+
+                {
+                    this.state.showMenu === true ? <Animated.View style={[styles.menuContainer, {
+                        transform: [
+                            {
+                                translateY: this.state.y
+                            }
+                        ]
+                    }]}>
                         <Image style={styles.imageContainerOfMenu}
                             source={(this.state.isMode === 'image' ? require('./assets/icons/camera_switch_option.png') : (this.state.isMode === 'video' ? require('./assets/icons/video_switch_option.png') : require('./assets/icons/audio_switch_option.png')))}
                         ></Image>
                         <TouchableOpacity style={styles.touchUpOfMenu} onPress={() => this.upButtonChangeMode()}></TouchableOpacity>
                         <TouchableOpacity style={styles.touchDownOfMenu} onPress={() => this.downButtonChangeMode()}></TouchableOpacity>
-                    </View>
+                    </Animated.View>
                         : null
                 }
 
@@ -269,16 +304,20 @@ export default class Media extends Component {
                         // })
                     }}>
                     {
-                        this.state.animating === true ?
-                            <ActivityIndicator
-                                animating={this.state.animating}
-                                color='#bc2b78'
-                                size="large"
-                                style={styles.activityIndicator} />
-                            :
-                            <TouchableOpacity onPress={() => this.goToCapturedMedia()} style={{ position: 'absolute', marginLeft: 40, height: 40, width: 40, borderRadius: 5 }}>
-                                {this._mediaPreview()}
-                            </TouchableOpacity>
+
+                        this.videoCapturing || this.audioCapturing ? null :
+                            (
+                                this.state.animating === true ?
+                                    <ActivityIndicator
+                                        animating={this.state.animating}
+                                        color='#bc2b78'
+                                        size="large"
+                                        style={styles.activityIndicator} />
+                                    :
+                                    <TouchableOpacity onPress={() => this.goToCapturedMedia()} style={{ position: 'absolute', marginLeft: 40, height: 40, width: 40, borderRadius: 5 }}>
+                                        {this._mediaPreview()}
+                                    </TouchableOpacity>
+                            )
                     }
 
                     <TouchableOpacity
@@ -298,22 +337,25 @@ export default class Media extends Component {
 
                     </TouchableOpacity >
                     {/* Toggle mode button */}
-                    <TouchableOpacity onPress={this.showAndHideMenu.bind(this)} style={styles.optionsMenu}  >
-                        <Image source={this.state.isMode === 'image' ? require('./assets/icons/camera.png') : (this.state.isMode === 'video' ? require('./assets/icons/video.png') : require('./assets/icons/audio.png'))}
-                            style={{ height: 20, width: 20, }} >
-                        </Image>
-                    </TouchableOpacity>
+                    {
+                        this.videoCapturing || this.audioCapturing ? null :
+                        <TouchableOpacity onPress={this.showAndHideMenu.bind(this)} style={styles.optionsMenu}  >
+                            <Image source={this.state.isMode === 'image' ? require('./assets/icons/camera.png') : (this.state.isMode === 'video' ? require('./assets/icons/video.png') : require('./assets/icons/audio.png'))}
+                                style={{ height: 20, width: 20, }} >
+                            </Image>
+                        </TouchableOpacity> 
+                    }
 
                     <AlertDialog
-                    show={this.state.mediaLimitError}
-                    title={'FrogProgress'}
-                    message= "You already have multiple pieces of evidence ready for upload. Please submit them before adding more"
-                    negativeButtonText = '' positiveButtonText= "OK"
-                    onButtonClicked={this._dialogCallback} />
+                        show={this.state.mediaLimitError}
+                        title={'FrogProgress'}
+                        message="You already have multiple pieces of evidence ready for upload. Please submit them before adding more"
+                        negativeButtonText='' positiveButtonText="OK"
+                        onButtonClicked={this._dialogCallback} />
 
                 </View>
-               
-                
+
+
 
             </SafeAreaView>
         );
@@ -323,22 +365,21 @@ export default class Media extends Component {
     pickMediaFromGallery = () => {
 
 
-        if (this.attachedMediaCounter + this._mediaFiles.length < 10)
-        {
+        if (this.attachedMediaCounter + this._mediaFiles.length < 10) {
             ImagePicker.openPicker({
                 multiple: true,
-                maxFiles: (10 - (this.attachedMediaCounter + this._mediaFiles.length)) ,
+                maxFiles: (10 - (this.attachedMediaCounter + this._mediaFiles.length)),
                 forceJpg: false,
                 cropping: false,
                 compressImageQuality: 0.7
             }).then(images => {
-    
+
                 // console.log(images);
-    
+
                 images.forEach((item) => {
-    
+
                     if (item.mime.includes('image')) {
-    
+
                         //   console.log(item.mime)
                         var data = item
                         data.type = "image";
@@ -346,133 +387,157 @@ export default class Media extends Component {
                         data.comment = null;
                         //    console.log(data)
                         this._mediaFiles.push(data);
-    
+
                     }
                     else if (item.mime.includes('video')) {
-    
+
                         var data = item
                         data.type = "video";
                         data.uri = item.path;
                         data.comment = null;
-                        RNThumbnail.get(item.path).then((result) => {
-                            // thumbnail path
-                            this.thumbnailUri = result.path
-                            data.thumbnail = this.thumbnailUri
+
+                        if (Platform.OS === 'android') {
+                        data.thumbnail = data.uri // thumbnail path
                             this._mediaFiles.push(data);
+
                             this.setState({});
-                        })
-    
+                        }
+
+
+                        if (Platform.OS === 'ios') {
+                            RNThumbnail.get(item.path).then((result) => {
+                                // thumbnail path
+                                this.thumbnailUri = result.path
+                                data.thumbnail = this.thumbnailUri
+                                this._mediaFiles.push(data);
+                                this.setState({});
+                            }
+
+                            )
+                        }
+
                     }
                 })
                 this.setState({});
             });
         }
-        else
-        {
+        else {
 
-          //  console.log ("Limit Exceeds")
+            //  console.log ("Limit Exceeds")
 
             this.setState({
                 mediaLimitError: true
             });
         }
 
-       
+
 
     }
 
     captureMedia = async function () {
 
-         if (this.attachedMediaCounter + this._mediaFiles.length < 10)
-        {
+        if (this.attachedMediaCounter + this._mediaFiles.length < 10) {
 
-        if (this.camera) {
-            if (this.state.isMode === 'image') {
-                const options = { quality: 0.5, fixOrientation: true, pictureSize: "640x480", forceUpOrientation: true };
-                this.setState({
-                    animating: true
-                })
-                const data = await this.camera.takePictureAsync(options);
-                data.type = "image";
-                data.comment = null;
-                this._mediaFiles.push(data);
-                
-                this.setState({
-                    animating: false
-                    
-                })
-            }
-            else if (this.state.isMode === 'video') {
-                // console.log('video')
-
-                const options = { quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
-
-                this.videoCapturing = !this.videoCapturing;
-                if (this.videoCapturing) {
-                    console.log("Start Recording")
-                    this.startRecordingTimer();
-                    const data = await this.camera.recordAsync(options)
-                    data.type = "video";
-                    data.comment = null;
-                    RNThumbnail.get(data.uri).then((result) => {
-                        //             console.log(result.path);
-                        data.thumbnail = result.path // thumbnail path
-                        this._mediaFiles.push(data);
-
-                        this.setState({
-                            animating: false
-                        })
-                        this.increase('progressCustomized', (0))
-                        
-                    })
-
-                }
-                else {
-                    console.log("stop Recording")
-                    this.stopRecordingTimer();
-                    this.camera.stopRecording();
+            if (this.camera) {
+                if (this.state.isMode === 'image') {
+                    const options = { quality: 0.5, fixOrientation: true, pictureSize: "640x480", forceUpOrientation: true };
                     this.setState({
                         animating: true
                     })
-                    this.increase('progressCustomized', (0))
+                    const data = await this.camera.takePictureAsync(options);
+                    data.type = "image";
+                    data.comment = null;
+                    this._mediaFiles.push(data);
+
+                    this.setState({
+                        animating: false
+
+                    })
+                }
+                else if (this.state.isMode === 'video') {
+                    // console.log('video')
+
+                    const options = { quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
+
+                    this.videoCapturing = !this.videoCapturing;
+                    if (this.videoCapturing) {
+                        console.log("Start Recording")
+                        this.startRecordingTimer();
+                        const data = await this.camera.recordAsync(options)
+                        data.type = "video";
+                        data.comment = null;
+
+                        if (Platform.OS === 'android') {
+                        data.thumbnail = data.uri // thumbnail path
+                            this._mediaFiles.push(data);
+
+                            this.setState({
+                                animating: false
+                            })
+                            this.increase('progressCustomized', (0))
+                        }
+
+
+                        if (Platform.OS === 'ios') {
+                            RNThumbnail.get(data.uri).then((result) => {
+                                //             console.log(result.path);
+                                data.thumbnail = result.path // thumbnail path
+                                this._mediaFiles.push(data);
+
+                                this.setState({
+                                    animating: false
+                                })
+                                this.increase('progressCustomized', (0))
+
+                            })
+                        }
+
+                    }
+                    else {
+                        console.log("stop Recording")
+                        this.stopRecordingTimer();
+                        this.camera.stopRecording();
+                        this.setState({
+                            animating: true
+                        })
+                        this.increase('progressCustomized', (0))
+                    }
+                }
+            }
+            else if (this.state.isMode === 'audio') {
+                var _this = this;
+                var milliseconds = (new Date).getTime();
+                this.audioCapturing = !this.audioCapturing;
+                // console.log(this.videoCapturing);
+                if (this.audioCapturing) {
+                    this.startRecordingTimer();
+
+                    SoundRecorder.start(SoundRecorder.PATH_CACHE + '/' + milliseconds + '.mp4', {
+                        format: SoundRecorder.FORMAT_MPEG_4,
+                        encoder: SoundRecorder.ENCODER_AAC
+                    })
+                        .then(function () {
+                            //            console.log('started recording');
+                        });
+                }
+                else {
+
+                    SoundRecorder.stop()
+                        .then(function (result) {
+                            //             console.log('stopped recording, audio file saved at: ' + result.path);
+                            _this._mediaFiles.push({ uri: result.path, type: 'audio', duration: _this.props.audioDuration - _this.state.timeRemaining, comment: null });
+                            _this.stopRecordingTimer();
+                            _this.audioUri = result.path;
+
+                        });
                 }
             }
         }
-        else if (this.state.isMode === 'audio') {
-            var _this = this;
-            var milliseconds = (new Date).getTime();
-            this.audioCapturing = !this.audioCapturing;
-            // console.log(this.videoCapturing);
-            if (this.audioCapturing) {
-                this.startRecordingTimer();
-
-                SoundRecorder.start(SoundRecorder.PATH_CACHE + '/' + milliseconds + '.mp4', {
-                    format: SoundRecorder.FORMAT_MPEG_4,
-                    encoder: SoundRecorder.ENCODER_AAC
-                })
-                    .then(function () {
-                        //            console.log('started recording');
-                    });
-            }
-            else {
-
-                SoundRecorder.stop()
-                    .then(function (result) {
-                        //             console.log('stopped recording, audio file saved at: ' + result.path);
-                        _this._mediaFiles.push({ uri: result.path, type: 'audio', duration: _this.props.audioDuration - _this.state.timeRemaining, comment: null });
-                        _this.stopRecordingTimer();
-                        _this.audioUri = result.path;
-
-                    });
-            }
+        else {
+            this.setState({
+                mediaLimitError: true
+            });
         }
-    }
-    else 
-    {
-        this.setState({
-            mediaLimitError: true
-        });
-    }
     };
 
     startRecordingTimer = () => {
@@ -555,18 +620,54 @@ export default class Media extends Component {
                     console.log(this._mediaFiles);
                     this.props.navigation.state.params.onComplete(this._mediaFiles);
                     this.props.navigation.pop();
-                }, 'previewType':false
+                }, 'previewType': false
             });
         }
     }
 
     showAndHideMenu = () => {
         if (!this.videoCapturing && !this.audioCapturing) {
-            this.setState({
-                showMenu: !this.state.showMenu,
-            });
+            // this.setState({
+            //     showMenu: !this.state.showMenu,
+            // });
+            this.state.showMenu === true ? this.slideTopToBottom() : this.slideBottomToTop()
+
         }
     }
+
+    slideBottomToTop = () => {
+
+
+        Animated.timing(this.state.y, {
+            toValue: 0,
+            duration: 500
+        }).start(() => this.setState({
+            y: new Animated.Value(0)
+        }))
+
+        // Animated.spring(this.state.y, {
+        //   toValue: 0,
+        // }).start();
+        this.setState({
+            showMenu: true,
+
+        });
+    };
+    slideTopToBottom = () => {
+
+        Animated.timing(this.state.y, {
+            toValue: 100,
+            duration: 500
+        }).start(() => this.setState({
+            y: new Animated.Value(100),
+            showMenu: false,
+        }));
+
+
+
+
+    };
+
 
     upButtonChangeMode = () => {
         if (this.state.isMode === 'image') {
@@ -593,6 +694,9 @@ export default class Media extends Component {
                 isMode: 'image'
             })
         }
+        this.setState({
+            y: new Animated.Value(100)
+        })
     }
 
     downButtonChangeMode = () => {
@@ -619,6 +723,9 @@ export default class Media extends Component {
             })
             this.increase('progressCustomized', (0))
         }
+        this.setState({
+            y: new Animated.Value(100)
+        })
     }
 
     cameraMode = () => {
@@ -691,12 +798,12 @@ const styles = StyleSheet.create({
         marginRight: 40,
         right: 0,
         position: 'absolute',
-        height : 40,
-        width:40,
-     //   backgroundColor:'#807F7F',
-     backgroundColor:'#303030', 
-     borderRadius:25,
-        alignItems:'center',
+        height: 40,
+        width: 40,
+        //   backgroundColor:'#807F7F',
+        backgroundColor: '#303030',
+        borderRadius: 25,
+        alignItems: 'center',
         justifyContent: 'center',
     },
     headerContainer: {
@@ -714,6 +821,15 @@ const styles = StyleSheet.create({
         padding: 10,
         alignSelf: 'flex-start',
         alignItems: 'flex-start'
+    },
+    centerContainer: {
+        position: 'absolute',
+        alignSelf: 'center',
+        left: 0,
+        right: 0,
+        bottom: 8,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     timerContainer: {
         flexDirection: 'row',
