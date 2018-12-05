@@ -295,8 +295,19 @@ _deleteMedia = () => {
 }
 
 _cancelPressed = () => {
-	this.props.navigation.state.params.onCrossedPressed(this.file);
-	this.props.navigation.pop();
+
+	if (this.isPreviewFromStudent == true && this.file.type == 'image')
+	{
+		this.props.navigation.state.params.onDonePressed(this.EditedFile);
+		this.props.navigation.pop();
+	}
+	else
+	{
+		this.props.navigation.state.params.onCrossedPressed(this.file);
+		this.props.navigation.pop();
+	}
+
+	
 }
 
 _donePressed = () => {
