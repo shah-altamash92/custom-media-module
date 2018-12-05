@@ -212,14 +212,14 @@ export default class Media extends Component {
                                             ></Image>
                                         </TouchableOpacity>)
                                 }
-                                {
-                                    this.state.isMode === 'audio' ? null :
+                                
+                                    
                                         <TouchableOpacity onPress={this._pickMediaFromGallery} style={{ padding: 10 }}>
                                             <Image style={{ height: 20, width: 20 }}
                                                 source={require('./assets/icons/gallery.png')}
                                             ></Image>
                                         </TouchableOpacity>
-                                }
+                                
                             </View>
                     }
                 </View>
@@ -634,7 +634,7 @@ export default class Media extends Component {
 
         Animated.timing(this.state.y, {
             toValue: 0,
-            duration: 500
+            duration: 450
         }).start(() => this.setState({
             y: new Animated.Value(0)
         }))
@@ -651,7 +651,7 @@ export default class Media extends Component {
 
         Animated.timing(this.state.y, {
             toValue: 100,
-            duration: 500
+            duration: 450
         }).start(() => this.setState({
             y: new Animated.Value(100),
             showMenu: false,
@@ -666,7 +666,7 @@ export default class Media extends Component {
     upButtonChangeMode = () => {
         if (this.state.isMode === 'image') {
             this.setState({
-                showMenu: false,
+               
                 isMode: 'video',
                 timeRemaining: this.props.videoDuration,
                 cameraType: RNCamera.Constants.Type.back
@@ -675,7 +675,7 @@ export default class Media extends Component {
         }
         else if (this.state.isMode === 'video') {
             this.setState({
-                showMenu: false,
+               
                 isMode: 'audio',
                 timeRemaining: this.props.audioDuration,
 
@@ -684,19 +684,27 @@ export default class Media extends Component {
         }
         else {
             this.setState({
-                showMenu: false,
+             
                 isMode: 'image'
             })
         }
-        this.setState({
-            y: new Animated.Value(100)
-        })
+       
+
+
+        Animated.timing(this.state.y, {
+            toValue: 100,
+            duration: 450,
+            useNativeDriver:true
+        }).start(() => this.setState({
+            y: new Animated.Value(100),
+            showMenu: false,
+        }));
     }
 
     downButtonChangeMode = () => {
         if (this.state.isMode === 'image') {
             this.setState({
-                showMenu: false,
+               
                 isMode: 'audio',
                 timeRemaining: this.props.audioDuration
             })
@@ -704,22 +712,27 @@ export default class Media extends Component {
         }
         else if (this.state.isMode === 'video') {
             this.setState({
-                showMenu: false,
+             
                 isMode: 'image'
             })
         }
         else {
             this.setState({
-                showMenu: false,
+              
                 isMode: 'video',
                 timeRemaining: this.props.videoDuration,
                 cameraType: RNCamera.Constants.Type.back
             })
             this.increase('progressCustomized', (0))
         }
-        this.setState({
-            y: new Animated.Value(100)
-        })
+        Animated.timing(this.state.y, {
+            toValue: 100,
+            duration: 450,
+            useNativeDriver:true
+        }).start(() => this.setState({
+            y: new Animated.Value(100),
+            showMenu: false,
+        }));
     }
 
     cameraMode = () => {
