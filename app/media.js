@@ -357,8 +357,7 @@ export default class Media extends Component {
                 multiple: true,
                 maxFiles: (MAX_MEDIA_UPLOAD - (this.attachedMediaCounter + this._mediaFiles.length)),
                 forceJpg: false,
-                cropping: false,
-                compressImageQuality: 0.7
+                cropping: false
             }).then(images => {
 
                 console.log(images);
