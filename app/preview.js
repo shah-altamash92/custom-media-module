@@ -132,7 +132,7 @@ export default class Preview extends Component {
 				this.setState({})
 
 
-				if (props.openEditor == true && this.file.type == 'image') {
+				if (this.openEditor == true && this.file.type == 'image') {
 					this._donePressed()
 				}
 				// console.log(uri)
