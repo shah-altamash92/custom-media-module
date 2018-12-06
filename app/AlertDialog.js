@@ -30,7 +30,7 @@ const AlertDialog = (props) => {
                         {
                             props.positiveButtonText && props.positiveButtonText.length > 0 ?
                             <TouchableOpacity
-                                style={styles.buttonStylePositive}
+                            style={(props.negativeButtonText && props.negativeButtonText.length) > 0 ? styles.buttonStylePositive :styles.buttonStylePositive_Green }
                                 onPress={() => { props.onButtonClicked(true); }}
                                 activeOpacity={0.7}>
                                 <Text style={styles.PositiveTextStyle}> {props.positiveButtonText} </Text>
@@ -107,6 +107,15 @@ const styles = StyleSheet.create({
         borderRadius:4,
         width:'45%',
         backgroundColor: '#d31146',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    buttonStylePositive_Green: {
+        padding:10,
+       // marginLeft:10,
+        borderRadius:4,
+        width:'100%',
+        backgroundColor: '#52B748',
         justifyContent: 'center',
         alignItems: 'center'
     },
