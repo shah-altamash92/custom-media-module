@@ -33,6 +33,7 @@ export default class Preview extends Component {
 	}
 	_showDoneButton = true;
 	isPreviewFromStudent = false;
+	openEditor = false
 
 	constructor(props) {
 		super(props)
@@ -46,11 +47,21 @@ export default class Preview extends Component {
 		this.file = navigation.getParam('file', '');
 		this._showDoneButton = navigation.getParam('showDoneButton', true);
 		// console.log(this.file);
-		this.EditedFile = this.file
+		this.EditedFile = JSON.parse(JSON.stringify(this.file));
 
 		// console.log("PreviewMode" + navigation.getParam('previewType'))
 
 		this.isPreviewFromStudent = navigation.getParam('previewType', false)
+		this.openEditor = navigation.getParam('openEditor', false)
+		if (this.openEditor == true && this.file.type == 'image') {
+
+			console.log("imageEditor")
+			this._editImage()
+		}
+		else {
+			console.log("Not Open Editor")
+			console.log(props.openEditor)
+		}
 
 	}
 
@@ -83,237 +94,240 @@ export default class Preview extends Component {
 	// 			console.log(err.message, err.code);
 	// 		});
 
-// }
+	// }
 
-_editImage = () => {
+	_editImage = () => {
 
-	if (Platform.OS === 'ios') {
-		RNDsPhotoEditor.init(IOS_EDITOR_KEY)
-		// console.log("filePath")
-		RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
+		if (Platform.OS === 'ios') {
+			RNDsPhotoEditor.init(IOS_EDITOR_KEY)
+			// console.log("filePath")
+			RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
 
-			var time = Date.now();
+				var time = Date.now();
 
-			var newFilePath = RNFS.CachesDirectoryPath + '/Camera/' + time + '.png'
-			RNFS.moveFile(uri, newFilePath).then((result) => {
-				// console.log('MOVE FILE  RESULT', result);
-				// console.log(newFilePath);
-				// console.log(uri)
-				// return Promise.all([RNFS.stat(result[0].path), result[0].path]);
-			}).catch((err) => {
-				console.log(err.message, err.code);
+				var newFilePath = RNFS.CachesDirectoryPath + '/Camera/' + time + '.png'
+				RNFS.moveFile(uri, newFilePath).then((result) => {
+					// console.log('MOVE FILE  RESULT', result);
+					// console.log(newFilePath);
+					// console.log(uri)
+					// return Promise.all([RNFS.stat(result[0].path), result[0].path]);
+				}).catch((err) => {
+					console.log(err.message, err.code);
+				});
+
+				this.EditedFile.uri = "file://" + newFilePath;
+				this.setState({})
+
+				if (this.openEditor == true && this.file.type == 'image') {
+					this._donePressed()
+				}
+
+
+			}).catch(error => {
+				console.log(error)
 			});
+		}
+		else {
+			RNDsPhotoEditor.init(ANDROID_EDITOR_KEY)
+			// console.log("filePath")
+			RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
+				this.EditedFile.uri = "file://" + uri;
+				this.setState({})
 
-			this.EditedFile.uri = "file://" + newFilePath;
-			this.setState({})
 
-
-		}).catch(error => {
-			console.log(error)
-		});
+				if (props.openEditor == true && this.file.type == 'image') {
+					this._donePressed()
+				}
+				// console.log(uri)
+			}).catch(error => {
+				console.log(error)
+			});
+		}
 	}
-	else {
-		RNDsPhotoEditor.init(ANDROID_EDITOR_KEY)
-		// console.log("filePath")
-		RNDsPhotoEditor.openEditor(this.EditedFile.uri).then(uri => {
-			this.EditedFile.uri = "file://" + uri;
-			this.setState({})
-			// console.log(uri)
-		}).catch(error => {
-			console.log(error)
-		});
-	}
-}
 
-_dialogCallback = (response) => {
-	if (response) {
-		const filePath = this.file.uri.split('///').pop();
+	_dialogCallback = (response) => {
+		if (response) {
+			const filePath = this.file.uri.split('///').pop();
 
-		RNFS.exists(filePath)
-			.then((res) => {
-				if (res) {
-					RNFS.unlink(filePath)
-						.then(() => {
-							console.log('FILE DELETED');
+			RNFS.exists(filePath)
+				.then((res) => {
+					if (res) {
+						RNFS.unlink(filePath)
+							.then(() => {
+								console.log('FILE DELETED');
 
-							// RNFS.exists(filePath).then((res) => { console.log('file status ' + res) });
-							this.setState({
-								isDelete: false
+								// RNFS.exists(filePath).then((res) => { console.log('file status ' + res) });
+								this.setState({
+									isDelete: false
+								});
+								this.props.navigation.state.params.onFileDelete();
+								this.props.navigation.pop();
 							});
-							this.props.navigation.state.params.onFileDelete();
-							this.props.navigation.pop();
-						});
-				}
-			})
+					}
+				})
+		}
+		else {
+			this.setState({
+				isDelete: false
+			});
+		}
 	}
-	else {
-		this.setState({
-			isDelete: false
-		});
-	}
-}
 
-//<SafeAreaView style={{flex: 1, backgroundColor: '#0171B9', paddingTop: (Platform.OS === "ios" ? 20 : 0)}} forceInset={{ bottom: 'never' }}>
-render() {
-	return (
-		<SafeAreaView style={{ flex: 1, flexDirection: 'column', height: '100%', width: '100%', backgroundColor: '#0171B9', paddingTop: (Platform.OS === "ios" ? 20 : 0) }} forceInset={{ bottom: 'never' }}>
-			<StatusBar
-				backgroundColor='#0171B9'
-				barStyle="light-content" />
-			<View style={styles.headerContainer}>
-				<TouchableOpacity style={styles.leftButton} onPress={this._cancelPressed}>
-					<Image source={require('./assets/icons/ic_cancel.png')} resizeMode='contain' style={styles.closeButtonStyle} />
-				</TouchableOpacity>
-				{
-					this.file.type === 'image' ?
-						<TouchableOpacity style={styles.rightButton} onPress={this._editImage}>
-							<Image style={{ height: 25, width: 25 }} source={require('./assets/icons/edit_image.png')} />
-						</TouchableOpacity> : null
+	//<SafeAreaView style={{flex: 1, backgroundColor: '#0171B9', paddingTop: (Platform.OS === "ios" ? 20 : 0)}} forceInset={{ bottom: 'never' }}>
+	render() {
+		return (
+			<SafeAreaView style={{ flex: 1, flexDirection: 'column', height: '100%', width: '100%', backgroundColor: '#0171B9', paddingTop: (Platform.OS === "ios" ? 20 : 0) }} forceInset={{ bottom: 'never' }}>
+				<StatusBar
+					backgroundColor='#0171B9'
+					barStyle="light-content" />
+				<View style={styles.headerContainer}>
+					<TouchableOpacity style={styles.leftButton} onPress={this._cancelPressed}>
+						<Image source={require('./assets/icons/ic_cancel.png')} resizeMode='contain' style={styles.closeButtonStyle} />
+					</TouchableOpacity>
+					{
+						this.file.type === 'image' ?
+							<TouchableOpacity style={styles.rightButton} onPress={this._editImage}>
+								<Image style={{ height: 25, width: 25 }} source={require('./assets/icons/edit_image.png')} />
+							</TouchableOpacity> : null
+					}
+				</View>
+				<View style={styles.container}>
+					{
+						this.returnPageView()
+					}
+					{
+						this.file.type != 'image' && this.state.paused ?
+							<TouchableOpacity style={styles.screenCover} onPress={this._playMedia}>
+								<Image source={require('./assets/icons/preview_play.png')} style={styles.playButton} />
+								{this.file.type === 'audio' ? <Text style={{ color: 'white', fontSize: 16, fontWeight: "bold" }}>{String(this.file.duration) + ' seconds'} </Text> : null}
+							</TouchableOpacity> :
+							<TouchableOpacity style={styles.screenCover} onPress={this._pauseVideo}></TouchableOpacity>
+					}
+				</View>
+				<View style={{ alignSelf: 'flex-end', flexDirection: 'row', height: 40 }}>
+					<View style={styles.footerBar}>
+						{this.isPreviewFromStudent === false ? <TouchableOpacity style={styles.leftButton} onPress={this._deleteMedia}>
+							<Image source={require('./assets/icons/trash.png')} style={{ height: 20, width: 20 }} />
+						</TouchableOpacity> : null}
+						{ ((this.isPreviewFromStudent === false && this.file.type != 'image') || (this.isPreviewFromStudent === true && this.file.type == 'image')) ? <TouchableOpacity style={styles.rightButton} onPress={this._donePressed} >
+							<Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
+						</TouchableOpacity> : 
+						null
 				}
-			</View>
-			<View style={styles.container}>
-				{
-					this.returnPageView()
-				}
-				{
-					this.file.type != 'image' && this.state.paused ?
-						<TouchableOpacity style={styles.screenCover} onPress={this._playMedia}>
-							<Image source={require('./assets/icons/preview_play.png')} style={styles.playButton} />
-							{this.file.type === 'audio' ? <Text style={{ color: 'white', fontSize: 16, fontWeight: "bold" }}>{String(this.file.duration) + ' seconds'} </Text> : null}
-						</TouchableOpacity> :
-						<TouchableOpacity style={styles.screenCover} onPress={this._pauseVideo}></TouchableOpacity>
-				}
-			</View>
-			<View style={{ alignSelf: 'flex-end', flexDirection: 'row', height: 40 }}>
-				<View style={styles.footerBar}>
-					{this.isPreviewFromStudent === false ? <TouchableOpacity style={styles.leftButton} onPress={this._deleteMedia}>
-						<Image source={require('./assets/icons/trash.png')} style={{ height: 20, width: 20 }} />
-					</TouchableOpacity> : null}
-					{this.isPreviewFromStudent === false ? <TouchableOpacity style={styles.rightButton} onPress={this._donePressed} >
-						<Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
-					</TouchableOpacity> : null}
+
+
+					</View>
+
+					<AlertDialog
+						show={this.state.isDelete}
+						title={'FrogProgress'}
+						message="Are you sure you want to delete this item?"
+						negativeButtonText="Cancel" positiveButtonText="Delete"
+						onButtonClicked={this._dialogCallback} />
 
 
 				</View>
 
-				<AlertDialog
-					show={this.state.isDelete}
-					title={'FrogProgress'}
-					message="Are you sure you want to delete this item?"
-					negativeButtonText="Cancel" positiveButtonText="Delete"
-					onButtonClicked={this._dialogCallback} />
-
-
-			</View>
-
-		</SafeAreaView>
-	);
-}
-
-returnPageView = () => {
-	var view;
-	switch (this.file.type) {
-		case 'video':
-			view = <Video source={{ uri: this.file.uri }} resizeMode='contain' style={styles.backgroundVideo}
-				paused={this.state.paused} onEnd={this._onVideoComplete} repeat={true} />
-			break;
-		case 'audio':
-			view = <Image style={[styles.audioPreview]}
-				source={require('./assets/images/audio_wallpaper_phone.png')} />;
-			break;
-		case 'image':
-			view = <Image resizeMode='contain' style={[styles.screenCover, { flex: 1 }]} source={{ uri: this.EditedFile.uri }} />;
-			break;
+			</SafeAreaView>
+		);
 	}
-	return view;
-}
 
-_playMedia = () => {
-	this.setState({ paused: false });
-
-	if (this.file.type === 'audio')
-		this._playAudio();
-}
-
-_playAudio = () => {
-
-
-	Sound.setCategory('Playback');
-
-	this.track = new Sound(this.file.uri, '', (e) => {
-		if (e) {
-			console.log('error loading track:', e)
-			console.log(this.file.uri)
-		} else {
-
-
-			console.log('PlayLoad:')
-			console.log(this.file.uri)
-			//   track.play()
-			// Get properties of the player instance
-
-			this.track.play((success) => {
-				console.log('Play')
-				if (success) {
-					console.log('successfully finished playing');
-					this.setState({ paused: true });
-				} else {
-					console.log('playback failed due to audio decoding errors');
-					// reset the player to its uninitialized state (android only)
-					// this is the only option to recover after an error occured and use the player again
-					this.track.reset();
-				}
-			});
+	returnPageView = () => {
+		var view;
+		switch (this.file.type) {
+			case 'video':
+				view = <Video source={{ uri: this.file.uri }} resizeMode='contain' style={styles.backgroundVideo}
+					paused={this.state.paused} onEnd={this._onVideoComplete} repeat={true} />
+				break;
+			case 'audio':
+				view = <Image style={[styles.audioPreview]}
+					source={require('./assets/images/audio_wallpaper_phone.png')} />;
+				break;
+			case 'image':
+				view = <Image resizeMode='contain' style={[styles.screenCover, { flex: 1 }]} source={{ uri: this.EditedFile.uri }} />;
+				break;
 		}
-	})
+		return view;
+	}
 
-}
+	_playMedia = () => {
+		this.setState({ paused: false });
 
-_pauseVideo = () => {
-	this.setState({ paused: true });
-	if (this.file.type === 'audio') {
-		try {
-			this.track.stop();
-		} catch (e) {
-			alert('Cannot play the file')
+		if (this.file.type === 'audio')
+			this._playAudio();
+	}
+
+	_playAudio = () => {
+
+
+		Sound.setCategory('Playback');
+
+		this.track = new Sound(this.file.uri, '', (e) => {
+			if (e) {
+				console.log('error loading track:', e)
+				console.log(this.file.uri)
+			} else {
+
+
+				console.log('PlayLoad:')
+				console.log(this.file.uri)
+				//   track.play()
+				// Get properties of the player instance
+
+				this.track.play((success) => {
+					console.log('Play')
+					if (success) {
+						console.log('successfully finished playing');
+						this.setState({ paused: true });
+					} else {
+						console.log('playback failed due to audio decoding errors');
+						// reset the player to its uninitialized state (android only)
+						// this is the only option to recover after an error occured and use the player again
+						this.track.reset();
+					}
+				});
+			}
+		})
+
+	}
+
+	_pauseVideo = () => {
+		this.setState({ paused: true });
+		if (this.file.type === 'audio') {
+			try {
+				this.track.stop();
+			} catch (e) {
+				alert('Cannot play the file')
+			}
 		}
 	}
-}
 
-_onVideoComplete = () => {
-	this.setState({
-		paused: true
-	});
-}
+	_onVideoComplete = () => {
+		this.setState({
+			paused: true
+		});
+	}
 
-_deleteMedia = () => {
+	_deleteMedia = () => {
 
-	this.setState({
-		isDelete: true
-	});
+		this.setState({
+			isDelete: true
+		});
 
-}
+	}
 
-_cancelPressed = () => {
+	_cancelPressed = () => {
 
-	if (this.isPreviewFromStudent == true && this.file.type == 'image')
-	{
+		this.props.navigation.state.params.onCrossedPressed(this.file);
+		this.props.navigation.pop();
+
+	}
+
+	_donePressed = () => {
+		console.log('done pressed');
 		this.props.navigation.state.params.onDonePressed(this.EditedFile);
 		this.props.navigation.pop();
 	}
-	else
-	{
-		this.props.navigation.state.params.onCrossedPressed(this.file);
-		this.props.navigation.pop();
-	}
-
-	
-}
-
-_donePressed = () => {
-	this.props.navigation.state.params.onDonePressed(this.EditedFile);
-	this.props.navigation.pop();
-}
 }
 
 // Later on in your styles..
@@ -337,13 +351,13 @@ var styles = StyleSheet.create({
 		// flex:1,
 		padding: 10,
 		alignSelf: 'flex-start',
-		alignItems: 'flex-start'
+		alignItems: 'flex-start',
 	},
 	rightButton: {
 		// flex:1,
 		padding: 10,
-		alignSelf: 'flex-end',
-		alignItems: 'flex-end'
+		position: 'absolute',
+		right: 10,
 	},
 	closeButtonStyle: {
 		width: 22,
