@@ -594,28 +594,31 @@ export default class Media extends Component {
 
     goToCapturedMedia = () => {
         if (!this.videoCapturing && !this.audioCapturing) {
-            this.props.navigation.navigate('Preview', {
-                file: this._mediaFiles[this._mediaFiles.length - 1],
-                onFileDelete: () => {
-                    this._mediaFiles.pop();
-                    // console.log(this._mediaFiles);
-                    this.setState({});
-                },
-                onCrossedPressed: (previewFile) => {
-
-                    console.log("Cross Button Pressed")
-                },
-                onDonePressed: (previewFile) => {
-                    this._mediaFiles.pop()
-                    this._mediaFiles.push(previewFile)
-                    //       console.log("Done Button Pressed")
-                    this.setState({});
-
-                    // console.log(this._mediaFiles);
-                    this.props.navigation.state.params.onComplete(this._mediaFiles);
-                    this.props.navigation.pop();
-                }, 'previewType': false
-            });
+            if(this._mediaFiles.length>0){
+                this.props.navigation.navigate('Preview', {
+                    file: this._mediaFiles[this._mediaFiles.length - 1],
+                    onFileDelete: () => {
+                        this._mediaFiles.pop();
+                        // console.log(this._mediaFiles);
+                        this.setState({});
+                    },
+                    onCrossedPressed: (previewFile) => {
+    
+                        console.log("Cross Button Pressed")
+                    },
+                    onDonePressed: (previewFile) => {
+                        this._mediaFiles.pop()
+                        this._mediaFiles.push(previewFile)
+                        //       console.log("Done Button Pressed")
+                        this.setState({});
+    
+                        // console.log(this._mediaFiles);
+                        this.props.navigation.state.params.onComplete(this._mediaFiles);
+                        this.props.navigation.pop();
+                    }, 'previewType': false
+                });
+            }
+           
         }
     }
 
