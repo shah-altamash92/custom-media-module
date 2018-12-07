@@ -132,7 +132,7 @@ export default class Preview extends Component {
 				this.setState({})
 
 
-				if (this.openEditor == true && this.file.type == 'image') {
+				if (props.openEditor == true && this.file.type == 'image') {
 					this._donePressed()
 				}
 				// console.log(uri)
@@ -315,6 +315,10 @@ export default class Preview extends Component {
 
 	_cancelPressed = () => {
 
+		if (this.file.type === 'audio') {
+				this.track.stop();
+		}
+
 		this.props.navigation.state.params.onCrossedPressed(this.file);
 		this.props.navigation.pop();
 
@@ -322,6 +326,9 @@ export default class Preview extends Component {
 
 	_donePressed = () => {
 		console.log('done pressed');
+		if (this.file.type === 'audio') {
+				this.track.stop();
+		}
 		this.props.navigation.state.params.onDonePressed(this.EditedFile);
 		this.props.navigation.pop();
 	}
@@ -400,5 +407,3 @@ var styles = StyleSheet.create({
 	}
 
 });
-
-
