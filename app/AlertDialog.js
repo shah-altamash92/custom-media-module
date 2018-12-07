@@ -15,7 +15,7 @@ const AlertDialog = (props) => {
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.25)' }}>
                 <View style={styles.Alert_Main_View}>
                     <Text style={styles.Alert_Title}>{props.title}</Text>
-                    <Text style={styles.Alert_Message}> {props.message} </Text>
+                    <Text style={styles.Alert_Message}>{props.message}</Text>
                     <View style={{ flexDirection: 'row', marginTop:20 }}>
                         {
                             props.negativeButtonText && props.negativeButtonText.length > 0 ?
@@ -23,7 +23,7 @@ const AlertDialog = (props) => {
                                 style={styles.buttonStyleNegative}
                                 onPress={() => { props.onButtonClicked(false); }}
                                 activeOpacity={0.7}>
-                                <Text style={styles.NegativeTextStyle}> {props.negativeButtonText} </Text>
+                                <Text style={styles.NegativeTextStyle}>{props.negativeButtonText}</Text>
     
                             </TouchableOpacity> : null
                         }
@@ -33,7 +33,7 @@ const AlertDialog = (props) => {
                             style={(props.negativeButtonText && props.negativeButtonText.length) > 0 ? styles.buttonStylePositive :styles.buttonStylePositive_Green }
                                 onPress={() => { props.onButtonClicked(true); }}
                                 activeOpacity={0.7}>
-                                <Text style={styles.PositiveTextStyle}> {props.positiveButtonText} </Text>
+                                <Text style={styles.PositiveTextStyle}>{props.positiveButtonText}</Text>
                             </TouchableOpacity> : null
                         }
                     </View>
