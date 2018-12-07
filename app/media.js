@@ -508,9 +508,12 @@ export default class Media extends Component {
                     SoundRecorder.start(SoundRecorder.PATH_CACHE + '/' + milliseconds + '.mp4', {
                         format: SoundRecorder.FORMAT_MPEG_4,
                         encoder: SoundRecorder.ENCODER_AAC
-                    })
-                        .then(function () {
-                            //            console.log('started recording');
+                    }).then(function () {
+                                       console.log('started recording');
+                        }).catch((err) => {
+                            console.log('Error in recording audio :');
+                            console.log(err);
+                            console.log("===================");
                         });
                 }
                 else {
@@ -522,6 +525,10 @@ export default class Media extends Component {
                             _this.stopRecordingTimer();
                             _this.audioUri = result.path;
 
+                        }).catch((err) => {
+                            console.log('Error in stopping audio :');
+                            console.log(err);
+                            console.log("===================");
                         });
                 }
             }
@@ -743,6 +750,8 @@ export default class Media extends Component {
             var state = this.state;
             state.cameraType = state.cameraType === RNCamera.Constants.Type.back
                 ? RNCamera.Constants.Type.front : RNCamera.Constants.Type.back;
+
+                console.log ( state.cameraType)
             this.setState(state);
         }
     };
@@ -881,7 +890,6 @@ const styles = StyleSheet.create({
     imageContainerOfMenu: {
         width: 40,
         height: 80,
-
     }
     ,
     touchUpOfMenu: {
