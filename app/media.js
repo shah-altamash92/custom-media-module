@@ -85,6 +85,7 @@ export default class Media extends Component {
             permissionState: false,
             mediaLimitError: false,
             y: new Animated.Value(100),
+            hidePreview: false
 
         }
 
@@ -229,9 +230,13 @@ export default class Media extends Component {
                     <View style={styles.preview}>
 
                         {
-                            this.state.permissionState === true ? (this.state.isMode === 'audio' ?
-                                <Image style={styles.preview} source={require('./assets/images/audio_wallpaper_phone.png')}></Image> :
-                                <RNCamera
+                            this.state.permissionState === true ? (
+                                this.state.isMode === 'audio' ?
+                                <Image style={styles.preview} source={require('./assets/images/audio_wallpaper_phone.png')}></Image> 
+                                :
+                                this.state.hidePreview
+                                ? null
+                                : <RNCamera
                                     ref={camera => { this.camera = camera; }}
                                     style={styles.preview}
                                     type={this.state.cameraType}
@@ -240,9 +245,8 @@ export default class Media extends Component {
                                     playSoundOnCapture={true}
                                     permissionDialogTitle={'Camera permission required'}
                                     permissionDialogMessage={'We need camera permission to capture evidence'}
-                                    onGoogleVisionBarcodesDetected={({ barcodes }) => {
-                                        //       console.log(barcodes)
-                                    }} />) : null
+                                     />
+                            ) : null
                         }
 
                     </View>
@@ -430,6 +434,11 @@ export default class Media extends Component {
 
     captureMedia = async function () {
 
+
+        if(this.state.showMenu)
+        {
+            this.slideTopToBottom();
+        }
         if (this.attachedMediaCounter + this._mediaFiles.length < MAX_MEDIA_UPLOAD) {
             if (this.camera) {
                 if (this.state.isMode === 'image') {
@@ -450,7 +459,7 @@ export default class Media extends Component {
                 else if (this.state.isMode === 'video') {
                     // console.log('video')
 
-                    const options = { quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true };
+                    const options = { quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true};
 
                     this.videoCapturing = !this.videoCapturing;
                     if (this.videoCapturing) {
@@ -748,11 +757,25 @@ export default class Media extends Component {
     cameraMode = () => {
         if (this.camera) {
             var state = this.state;
+
+
+
+
             state.cameraType = state.cameraType === RNCamera.Constants.Type.back
                 ? RNCamera.Constants.Type.front : RNCamera.Constants.Type.back;
 
                 console.log ( state.cameraType)
-            this.setState(state);
+            state.hidePreview = true;
+            this.setState(state, ()=>{
+                console.log(this.state.hidePreview);
+                setTimeout(() => {
+                    this.setState({
+                        hidePreview: false
+                    }, ()=> {
+                        console.log(this.state.hidePreview);
+                    })
+                }, 1);
+            });
         }
     };
 
