@@ -315,9 +315,9 @@ export default class Preview extends Component {
 
 	_cancelPressed = () => {
 
-		if (this.file.type === 'audio') {
-				this.track.stop();
-		}
+		if (this.file.type === 'audio' && this.state.paused ==false) {
+			this.track.stop();
+	}
 
 		this.props.navigation.state.params.onCrossedPressed(this.file);
 		this.props.navigation.pop();
@@ -326,7 +326,7 @@ export default class Preview extends Component {
 
 	_donePressed = () => {
 		console.log('done pressed');
-		if (this.file.type === 'audio') {
+		if (this.file.type === 'audio' && this.state.paused ==false) {
 				this.track.stop();
 		}
 		this.props.navigation.state.params.onDonePressed(this.EditedFile);
@@ -407,3 +407,5 @@ var styles = StyleSheet.create({
 	}
 
 });
+
+
