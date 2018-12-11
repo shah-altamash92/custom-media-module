@@ -26,6 +26,7 @@ export default class Preview extends Component {
 	file = '';
 	mediaType = '';
 	track;
+	trackSetup = false;
 	EditedFile;
 	state = {
 		paused: true,
@@ -56,9 +57,20 @@ export default class Preview extends Component {
 		if (this.openEditor == true && this.file.type == 'image') {
 
 			console.log("imageEditor")
-			this._editImage()
+			this._editImage();
 		}
 	
+		if(this.file.type == 'audio'){
+			Sound.setCategory('Playback');
+			this.track = new Sound(this.file.uri, '', (e) => {
+				if (e) {
+					console.log('error loading track:', e)
+					console.log(this.file.uri)
+				} else {
+					this.trackSetup = true;
+				}
+			});
+		}
 
 	}
 
@@ -116,7 +128,7 @@ export default class Preview extends Component {
 				this.setState({})
 
 				if (this.openEditor == true && this.file.type == 'image') {
-					this._donePressed()
+					this._donePressed();
 				}
 
 
@@ -132,7 +144,9 @@ export default class Preview extends Component {
 				this.setState({})
 
 
-				if (props.openEditor == true && this.file.type == 'image') {
+				console.log(this.openEditor+' / '+this.file.type);
+				if (this.openEditor && this.file.type == 'image') {
+					console.log('image');
 					this._donePressed()
 				}
 				// console.log(uri)
@@ -257,20 +271,16 @@ export default class Preview extends Component {
 	_playAudio = () => {
 
 
-		Sound.setCategory('Playback');
 
-		this.track = new Sound(this.file.uri, '', (e) => {
-			if (e) {
-				console.log('error loading track:', e)
-				console.log(this.file.uri)
-			} else {
-
+		
+		if(this.trackSetup){
 
 				console.log('PlayLoad:')
 				console.log(this.file.uri)
 				//   track.play()
 				// Get properties of the player instance
 
+				
 				this.track.play((success) => {
 					console.log('Play')
 					if (success) {
@@ -284,7 +294,6 @@ export default class Preview extends Component {
 					}
 				});
 			}
-		})
 
 	}
 
@@ -292,7 +301,7 @@ export default class Preview extends Component {
 		this.setState({ paused: true });
 		if (this.file.type === 'audio') {
 			try {
-				this.track.stop();
+				this.track.pause();
 			} catch (e) {
 				alert('Cannot play the file')
 			}
@@ -325,7 +334,6 @@ export default class Preview extends Component {
 	}
 
 	_donePressed = () => {
-		console.log('done pressed');
 		if (this.file.type === 'audio' && this.state.paused ==false) {
 				this.track.stop();
 		}
