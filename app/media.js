@@ -113,7 +113,7 @@ export default class Media extends Component {
                 this.setState({
                     permissionState: true
                 })
-                console.log("Authorized")
+             //   console.log("Authorized")
             }
             else {
                 this.props.navigation.pop();
@@ -243,6 +243,8 @@ export default class Media extends Component {
                                     captureAudio={true}
                                     flashMode={this.state.flashMode}
                                     playSoundOnCapture={true}
+                                    pictureSize="Photo"
+                                  // defaultVideoQuality={2}
                                     permissionDialogTitle={'Camera permission required'}
                                     permissionDialogMessage={'We need camera permission to capture evidence'}
                                      />
@@ -364,7 +366,7 @@ export default class Media extends Component {
                 cropping: false
             }).then(images => {
 
-                console.log(images);
+         //       console.log(images);
                 // console.log(images.length);
 
                 if (images.length > (MAX_MEDIA_UPLOAD - (this.attachedMediaCounter + this._mediaFiles.length))) {
@@ -442,7 +444,7 @@ export default class Media extends Component {
         if (this.attachedMediaCounter + this._mediaFiles.length < MAX_MEDIA_UPLOAD) {
             if (this.camera) {
                 if (this.state.isMode === 'image') {
-                    const options = { quality: 0.5, fixOrientation: true, pictureSize: "640x480", forceUpOrientation: true };
+                    const options = { quality: 0.5, fixOrientation: true, forceUpOrientation: true, width:640 };
                     this.setState({
                         animating: true
                     })
@@ -459,7 +461,7 @@ export default class Media extends Component {
                 else if (this.state.isMode === 'video') {
                     // console.log('video')
 
-                    const options = { quality: RNCamera.Constants.VideoQuality['480p'], fixOrientation: true};
+                    const options = { quality: RNCamera.Constants.VideoQuality['288p'], fixOrientation: true,};
 
                     this.videoCapturing = !this.videoCapturing;
                     if (this.videoCapturing) {
@@ -496,7 +498,7 @@ export default class Media extends Component {
 
                     }
                     else {
-                        console.log("stop Recording")
+                   //     console.log("stop Recording")
                         this.stopRecordingTimer();
                         this.camera.stopRecording();
                         this.setState({
@@ -518,11 +520,11 @@ export default class Media extends Component {
                         format: SoundRecorder.FORMAT_MPEG_4,
                         encoder: SoundRecorder.ENCODER_AAC
                     }).then(function () {
-                                       console.log('started recording');
+                        //               console.log('started recording');
                         }).catch((err) => {
-                            console.log('Error in recording audio :');
-                            console.log(err);
-                            console.log("===================");
+                   //         console.log('Error in recording audio :');
+                  //          console.log(err);
+                //            console.log("===================");
                         });
                 }
                 else {
@@ -535,9 +537,9 @@ export default class Media extends Component {
                             _this.audioUri = result.path;
 
                         }).catch((err) => {
-                            console.log('Error in stopping audio :');
-                            console.log(err);
-                            console.log("===================");
+                            // console.log('Error in stopping audio :');
+                            // console.log(err);
+                            // console.log("===================");
                         });
                 }
             }
@@ -620,7 +622,7 @@ export default class Media extends Component {
                     },
                     onCrossedPressed: (previewFile) => {
     
-                        console.log("Cross Button Pressed")
+                    //    console.log("Cross Button Pressed")
                     },
                     onDonePressed: (previewFile) => {
                         this._mediaFiles.pop()
@@ -764,15 +766,15 @@ export default class Media extends Component {
             state.cameraType = state.cameraType === RNCamera.Constants.Type.back
                 ? RNCamera.Constants.Type.front : RNCamera.Constants.Type.back;
 
-                console.log ( state.cameraType)
+            //    console.log ( state.cameraType)
             state.hidePreview = true;
             this.setState(state, ()=>{
-                console.log(this.state.hidePreview);
+             //   console.log(this.state.hidePreview);
                 setTimeout(() => {
                     this.setState({
                         hidePreview: false
                     }, ()=> {
-                        console.log(this.state.hidePreview);
+                 //       console.log(this.state.hidePreview);
                     })
                 }, 1);
             });
