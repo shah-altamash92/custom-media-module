@@ -243,7 +243,7 @@ export default class Media extends Component {
                                     captureAudio={true}
                                     flashMode={this.state.flashMode}
                                     playSoundOnCapture={true}
-                                    pictureSize="Photo"
+                                    //pictureSize="Photo"
                                   // defaultVideoQuality={2}
                                     permissionDialogTitle={'Camera permission required'}
                                     permissionDialogMessage={'We need camera permission to capture evidence'}
@@ -461,7 +461,14 @@ export default class Media extends Component {
                 else if (this.state.isMode === 'video') {
                     // console.log('video')
 
-                    const options = { quality: RNCamera.Constants.VideoQuality['288p'], fixOrientation: true,};
+                    var options = {fixOrientation: true};
+                    if (Platform.OS === 'android') {
+                        options.quality = RNCamera.Constants.VideoQuality["4:3"];
+                    }
+                    else{
+                        // IF IOS
+                        options.quality = RNCamera.Constants.VideoQuality["288p"];
+                    }
 
                     this.videoCapturing = !this.videoCapturing;
                     if (this.videoCapturing) {
