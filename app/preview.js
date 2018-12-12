@@ -134,6 +134,9 @@ export default class Preview extends Component {
 
 			}).catch(error => {
 				console.log(error)
+				if (this.openEditor == true && this.file.type == 'image') {
+					this._cancelPressed();
+				}
 			});
 		}
 		else {
@@ -152,6 +155,10 @@ export default class Preview extends Component {
 				// console.log(uri)
 			}).catch(error => {
 				console.log(error)
+				if (this.openEditor && this.file.type == 'image') {
+					console.log('image');
+					this._cancelPressed()
+				}
 			});
 		}
 	}
@@ -415,5 +422,3 @@ var styles = StyleSheet.create({
 	}
 
 });
-
-
